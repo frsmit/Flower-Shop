@@ -1,0 +1,99 @@
+/**
+ * Everything you'll want to tweak, with the personal bits pulled out into
+ * environment variables so they don't have to live in the repo.
+ *
+ * IMPORTANT, so nobody relies on this for the wrong thing: `VITE_*` variables
+ * are inlined into the JavaScript bundle at build time. They keep values out of
+ * your *source*, which is what makes a public repo safe to use - they do NOT
+ * hide anything from a visitor. Every string below ends up readable in the
+ * shipped bundle. Treat this page as public no matter how it's configured.
+ *
+ * Local: copy .env.example to .env and fill it in (.env is gitignored).
+ * Deployed: set the same names as GitHub Actions secrets - see the workflow.
+ */
+
+// `import.meta.env` doesn't exist when Node imports this file directly (the
+// Express server does), so fall back to process.env there.
+const env =
+  typeof import.meta !== 'undefined' && import.meta.env
+    ? import.meta.env
+    : (typeof process !== 'undefined' && process.env) || {};
+
+/** Treats blank and whitespace-only values as "not set". */
+const pick = (value, fallback) => {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  return trimmed === '' ? fallback : trimmed;
+};
+
+/**
+ * An explicit UTC offset, deliberately. The old version built the date from
+ * local calendar parts at build time - which is midnight on whatever machine
+ * ran the build. GitHub Actions runners are UTC, so a CI build would have put
+ * "midnight" at 5:30am India time. Pinning the offset makes the instant the
+ * same no matter where it's built.
+ */
+const DEFAULT_TARGET = '2026-09-27T00:00:00+05:30';
+
+function resolveTarget(raw) {
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    console.warn(`[config] VITE_BIRTHDAY_DATE "${raw}" isn't a valid date; using the default.`);
+    return new Date(DEFAULT_TARGET);
+  }
+  return parsed;
+}
+
+const name = pick(env.VITE_BIRTHDAY_NAME, 'Bestie');
+
+export const defaultConfig = {
+  // Who we're waiting for.
+  name,
+
+  // The big day. Keep the offset on the end so it doesn't drift with the builder.
+  targetDate: resolveTarget(pick(env.VITE_BIRTHDAY_DATE, DEFAULT_TARGET)).toISOString(),
+
+  // How long the celebration screen stays up after midnight (hours).
+  celebrationWindowHours: Number(pick(env.VITE_CELEBRATION_HOURS, '24')) || 24,
+
+  greeting: 'Something lovely is blooming',
+  subGreeting: 'and it opens on the twenty-seventh of September',
+
+  // Shown once the timer hits zero.
+  birthdayTitle: 'Happy Birthday',
+  birthdayMessage: pick(
+    env.VITE_BIRTHDAY_MESSAGE,
+    'You made another trip around the sun look effortless. Here is to a year that smells like fresh flowers.',
+  ),
+
+  // ---- the sealed envelope -------------------------------------------------
+  // SHA-256 of the passphrase. Generate one with:
+  //     npm run key -- "your secret phrase"
+  // Empty or unset removes the gate entirely and lands straight on the countdown.
+  secretHash: pick(env.VITE_SECRET_HASH, null),
+
+  // Shown under the input, so she has a chance without you having to tell her.
+  secretHint: pick(env.VITE_SECRET_HINT, 'her favourite flower, all one word'),
+  sealedTitle: 'A letter for you',
+  sealedInvite: 'whisper the word and the seal will give',
+  sealedRefusal: 'the seal holds. try once more?',
+
+  // What the letter says once it unfolds.
+  letterOpening: pick(env.VITE_LETTER_OPENING, `Dearest ${name},`),
+  letterBody: pick(
+    env.VITE_LETTER_BODY,
+    'something has been growing here since long before today, and it is nearly ready. Come back often - it is counting.',
+  ),
+  letterSignoff: pick(env.VITE_LETTER_SIGNOFF, 'with love'),
+
+  // Little notes that rotate above the timer while we wait.
+  whispers: [
+    'the petals are still counting',
+    'a garden is being arranged',
+    'the candles are being polished',
+    'somewhere, a cake is rising',
+    'the roses were told to be on time',
+    'wishes are being wrapped',
+  ],
+};
+
+export default defaultConfig;

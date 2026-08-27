@@ -1,0 +1,1102 @@
+/* ============================================================
+   Birthday countdown - flowery, soft-focus, a little romantic.
+   ============================================================ */
+
+:root {
+  --cream: #fdf6f2;
+  --blush: #fbe6ea;
+  --rose: #e78ba8;
+  --rose-deep: #c2617f;
+  --plum: #6b4358;
+  --plum-soft: #8d6478;
+  --lilac: #e2c4ea;
+  --gold: #e8b878;
+  --sage: #9dbd93;
+
+  --ink: #5c3a4a;
+  --ink-soft: rgba(92, 58, 74, 0.68);
+
+  --glass: rgba(255, 255, 255, 0.5);
+  --glass-line: rgba(255, 255, 255, 0.72);
+  --shadow-soft: 0 22px 60px -28px rgba(150, 84, 110, 0.45);
+  --shadow-tile: 0 18px 44px -22px rgba(160, 92, 120, 0.5);
+
+  --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-script: "Parisienne", "Cormorant Garamond", cursive;
+  --font-ui: "Quicksand", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ---------- shell ---------------------------------------------------- */
+
+.app {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.app__wash {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    radial-gradient(120% 90% at 12% 8%, #fff8f4 0%, rgba(255, 248, 244, 0) 55%),
+    radial-gradient(100% 80% at 88% 4%, #fce9f0 0%, rgba(252, 233, 240, 0) 60%),
+    radial-gradient(110% 100% at 50% 110%, #f4ecfb 0%, rgba(244, 236, 251, 0) 62%),
+    linear-gradient(168deg, #fdf6f2 0%, #fbeef1 42%, #f7eef8 100%);
+}
+
+.app__glow {
+  position: fixed;
+  z-index: -2;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: drift 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.app__glow--one {
+  width: 46vmax;
+  height: 46vmax;
+  top: -14vmax;
+  left: -10vmax;
+  background: radial-gradient(circle, rgba(247, 169, 192, 0.6), rgba(247, 169, 192, 0));
+}
+
+.app__glow--two {
+  width: 40vmax;
+  height: 40vmax;
+  right: -12vmax;
+  top: 22vmax;
+  background: radial-gradient(circle, rgba(210, 173, 240, 0.55), rgba(210, 173, 240, 0));
+  animation-delay: -8s;
+  animation-duration: 28s;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(4vmax, 3vmax, 0);
+  }
+}
+
+.petal-field {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.stage {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.2rem, 3.5vh, 2.4rem) clamp(1.1rem, 5vw, 4rem) clamp(7rem, 16vh, 10rem);
+  text-align: center;
+}
+
+/* ---------- waiting screen ------------------------------------------- */
+
+.waiting {
+  width: min(100%, 62rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.waiting__eyebrow {
+  margin: 0;
+  max-width: 100%;
+  font-size: clamp(0.72rem, 1.6vw, 0.9rem);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  font-weight: 500;
+}
+
+.waiting__name {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-script);
+  font-weight: 400;
+  font-size: clamp(3rem, 9.5vw, 6.2rem);
+  line-height: 0.95;
+  color: var(--rose-deep);
+  text-shadow: 0 12px 34px rgba(196, 106, 138, 0.24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.waiting__apostrophe {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1.1rem, 3.4vw, 2rem);
+  letter-spacing: 0.06em;
+  color: var(--plum);
+  opacity: 0.72;
+  margin-top: 0.1em;
+}
+
+.waiting__sub {
+  margin: 0.7rem 0 0;
+  max-width: 42ch;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1rem, 2.4vw, 1.35rem);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* ---------- countdown ----------------------------------------------- */
+
+.countdown {
+  margin-top: clamp(1.5rem, 3.5vh, 2.6rem);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(0.4rem, 1.6vw, 1.1rem);
+  flex-wrap: wrap;
+}
+
+.countdown__group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  padding-right: clamp(0.4rem, 1.6vw, 1.1rem);
+}
+
+.countdown__group:last-child {
+  padding-right: 0;
+}
+
+.countdown__tile {
+  position: relative;
+  overflow: hidden;
+  min-width: clamp(4.4rem, 15vw, 7.4rem);
+  padding: clamp(0.85rem, 2.4vw, 1.5rem) clamp(0.7rem, 2vw, 1.2rem);
+  border-radius: 1.7rem;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.87), rgba(255, 255, 255, 0.55));
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--shadow-tile), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.countdown__sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 42%);
+  pointer-events: none;
+}
+
+.countdown__value {
+  position: relative;
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 8.5vw, 4.6rem);
+  line-height: 1;
+  color: var(--rose-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown__label {
+  font-size: clamp(0.62rem, 1.5vw, 0.76rem);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  font-weight: 500;
+}
+
+.countdown__flourish {
+  position: absolute;
+  top: clamp(1.4rem, 4vw, 2.4rem);
+  right: clamp(-0.7rem, -1.1vw, -0.35rem);
+  width: clamp(0.85rem, 2.2vw, 1.15rem);
+  height: auto;
+  color: rgba(226, 148, 178, 0.6);
+  animation: twinkle 4.5s ease-in-out infinite;
+}
+
+.countdown__group:nth-child(2) .countdown__flourish {
+  animation-delay: -1.5s;
+}
+
+.countdown__group:nth-child(3) .countdown__flourish {
+  animation-delay: -3s;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: rotate(30deg) scale(1.16);
+    opacity: 0.95;
+  }
+}
+
+/* rolling digits */
+
+.rolling {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.rolling__slot {
+  position: relative;
+  display: inline-block;
+  width: 0.62em;
+  height: 1em;
+  overflow: hidden;
+}
+
+.rolling__digit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Promote the digit so the slot's overflow clip is handled by the compositor
+     rather than repainting the glass tile behind it every frame. */
+  will-change: transform;
+}
+
+/* ---------- lower row ------------------------------------------------ */
+
+.waiting__lower {
+  margin-top: clamp(1.4rem, 3.5vh, 2.4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.5rem, 5vw, 3.5rem);
+  flex-wrap: wrap;
+}
+
+.bloom {
+  position: relative;
+  width: clamp(8rem, 20vw, 10.5rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.bloom__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bloom__marker {
+  animation: spin 14s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bloom__center {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  max-width: 76%;
+}
+
+.bloom__pct {
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  color: var(--rose-deep);
+  line-height: 1;
+}
+
+.bloom__caption {
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  line-height: 1.45;
+}
+
+.waiting__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  flex: 1 1 16rem;
+  min-width: 0;
+  max-width: 26rem;
+}
+
+.whispers {
+  position: relative;
+  min-height: 3.4em;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
+.whispers__line {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.05rem, 2.8vw, 1.5rem);
+  color: var(--plum);
+  opacity: 0.86;
+}
+
+.waiting__date {
+  margin: 0;
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--shadow-soft);
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+}
+
+/* ---------- celebration ---------------------------------------------- */
+
+.app--celebrating .app__wash {
+  background:
+    radial-gradient(120% 90% at 20% 0%, #fff6ea 0%, rgba(255, 246, 234, 0) 55%),
+    radial-gradient(100% 80% at 85% 10%, #fbdfec 0%, rgba(251, 223, 236, 0) 60%),
+    linear-gradient(168deg, #fff7f0 0%, #fce7ee 45%, #f3e6fa 100%);
+}
+
+.celebration {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.celebration__eyebrow {
+  max-width: 100%;
+  font-size: clamp(0.7rem, 1.6vw, 0.85rem);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+}
+
+.celebration__title {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: clamp(2.6rem, 9vw, 5.2rem);
+  line-height: 1.02;
+  color: var(--plum);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.celebration__name {
+  font-family: var(--font-script);
+  font-size: clamp(3.4rem, 13vw, 8rem);
+  color: var(--rose-deep);
+  line-height: 1.05;
+  text-shadow: 0 14px 38px rgba(196, 106, 138, 0.28);
+}
+
+.celebration__message {
+  margin: 1.2rem 0 0;
+  max-width: 42ch;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.05rem, 2.6vw, 1.45rem);
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.celebration__again {
+  margin-top: 1.8rem;
+  padding: 0.85rem 2.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line);
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.9), rgba(255, 236, 242, 0.74));
+  box-shadow: var(--shadow-soft);
+  color: var(--rose-deep);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.celebration__again:focus-visible {
+  outline: 2px solid var(--rose);
+  outline-offset: 4px;
+}
+
+/* ---------- garden band ---------------------------------------------- */
+
+/* The plant sits in its own fixed layer that covers the viewport. It's placed
+   before the content in the DOM, so the text always paints over it. */
+.vines {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Zero-size holder for the shared <defs>. */
+.vines__sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Drapes hanging over the top two corners. Masked so they fade out as they
+   reach toward the middle of the page instead of stopping dead. */
+.vines__drape {
+  position: absolute;
+  top: 0;
+  width: min(46vw, 33rem);
+  height: min(78vh, 40rem);
+  display: block;
+}
+
+.vines__drape--left {
+  left: 0;
+  mask-image: radial-gradient(125% 115% at 0% 0%, #000 44%, transparent 88%);
+  -webkit-mask-image: radial-gradient(125% 115% at 0% 0%, #000 44%, transparent 88%);
+}
+
+.vines__drape--right {
+  right: 0;
+  mask-image: radial-gradient(125% 115% at 100% 0%, #000 44%, transparent 88%);
+  -webkit-mask-image: radial-gradient(125% 115% at 100% 0%, #000 44%, transparent 88%);
+}
+
+.vines__hedge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* An SVG is a replaced element: with `width` left auto it takes its intrinsic
+     width from the viewBox ratio and `right: 0` is quietly ignored, which left
+     a bare strip down the right-hand side. */
+  width: 100%;
+  height: clamp(8.5rem, 24vh, 15rem);
+  display: block;
+  mask-image: linear-gradient(to top, #000 62%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, #000 62%, transparent 100%);
+}
+
+/* fill-box so each cane pivots at its own base rather than the viewBox's. */
+.vine__cane {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: sway 7s ease-in-out infinite alternate;
+}
+
+/* A hanging cane should pivot from where it's attached - the top. */
+.vines__drape .vine__cane {
+  transform-origin: top center;
+}
+
+@keyframes sway {
+  from {
+    transform: rotate(-1.1deg);
+  }
+  to {
+    transform: rotate(1.4deg);
+  }
+}
+
+/* ---------- responsive + motion -------------------------------------- */
+
+/* Tablets and big phones: pull the drapes in so they stop crowding the text. */
+@media (max-width: 860px) {
+  .vines__drape {
+    width: min(52vw, 17rem);
+    height: min(48vh, 18rem);
+  }
+}
+
+@media (max-width: 560px) {
+  .stage {
+    padding: clamp(1rem, 3vh, 1.8rem) 0.9rem clamp(5.5rem, 14vh, 7.5rem);
+  }
+
+  .waiting__eyebrow,
+  .celebration__eyebrow {
+    font-size: 0.56rem;
+    letter-spacing: 0.18em;
+  }
+
+  .waiting__sub {
+    max-width: 26ch;
+  }
+
+  .countdown {
+    gap: 0.28rem;
+  }
+
+  .countdown__group {
+    gap: 0.5rem;
+    padding-right: 0.28rem;
+  }
+
+  .countdown__tile {
+    min-width: 3.85rem;
+    padding: 0.7rem 0.45rem;
+    border-radius: 1.15rem;
+  }
+
+  .countdown__value {
+    font-size: 2.1rem;
+  }
+
+  .countdown__label {
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+  }
+
+  /* The little flower between tiles has no room to sit at this width. */
+  .countdown__flourish {
+    display: none;
+  }
+
+  .waiting__lower {
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .bloom {
+    width: 7.5rem;
+  }
+
+  .waiting__aside {
+    max-width: 100%;
+  }
+
+  .whispers {
+    min-height: 2.6em;
+  }
+
+  .waiting__date {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+  }
+
+  .vines__drape {
+    width: min(42vw, 9.5rem);
+    height: min(30vh, 12rem);
+  }
+
+  .vines__hedge {
+    height: clamp(6rem, 17vh, 9rem);
+  }
+
+  .celebration__message {
+    font-size: 1rem;
+  }
+}
+
+/* Shorter phones (a 360x640 android overflowed by 172px without this). The
+   sub-line goes first: the date pill below already says the same thing. */
+@media (max-width: 560px) and (max-height: 720px) {
+  .waiting__sub {
+    display: none;
+  }
+
+  .waiting__name {
+    font-size: 2.6rem;
+  }
+
+  .stage {
+    padding-bottom: clamp(4rem, 11vh, 6rem);
+  }
+
+  .countdown {
+    margin-top: 1rem;
+  }
+
+  /* Side by side rather than stacked - stacking the ring above the whisper
+     costs about 100px of height this viewport doesn't have. */
+  .waiting__lower {
+    flex-direction: row;
+    margin-top: 1rem;
+    gap: 0.7rem;
+  }
+
+  .bloom {
+    width: 5rem;
+  }
+
+  .bloom__pct {
+    font-size: 1.15rem;
+  }
+
+  .bloom__caption {
+    font-size: 0.5rem;
+  }
+
+  .whispers__line {
+    font-size: 0.95rem;
+  }
+
+  .vines__hedge {
+    height: clamp(4rem, 13vh, 6.5rem);
+  }
+}
+
+/* Phones held sideways, and short laptop windows. Very little vertical room,
+   so this keeps the name and the timer and sheds everything optional. */
+@media (max-height: 560px) {
+  .stage {
+    padding: 0.6rem 1rem clamp(1.5rem, 8vh, 3.5rem);
+  }
+
+  .waiting__eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+  }
+
+  .waiting__name {
+    margin-top: 0.1rem;
+    font-size: clamp(1.6rem, 6.5vh, 2.8rem);
+  }
+
+  .waiting__apostrophe {
+    font-size: 0.85rem;
+  }
+
+  .waiting__sub {
+    display: none;
+  }
+
+  .countdown {
+    margin-top: 0.85rem;
+  }
+
+  .countdown__group {
+    gap: 0.35rem;
+  }
+
+  .countdown__tile {
+    min-width: 3.2rem;
+    padding: 0.42rem 0.35rem;
+    border-radius: 0.85rem;
+  }
+
+  .countdown__value {
+    font-size: 1.6rem;
+  }
+
+  .countdown__label {
+    font-size: 0.5rem;
+    letter-spacing: 0.16em;
+  }
+
+  .countdown__flourish {
+    display: none;
+  }
+
+  /* Back to a row: horizontal room is the one thing landscape has. */
+  .waiting__lower {
+    flex-direction: row;
+    margin-top: 0.85rem;
+    gap: 1rem;
+  }
+
+  .bloom {
+    width: 3.9rem;
+  }
+
+  .bloom__pct {
+    font-size: 1rem;
+  }
+
+  .bloom__caption {
+    font-size: 0.5rem;
+  }
+
+  .whispers {
+    min-height: 2.2em;
+  }
+
+  .whispers__line {
+    font-size: 0.9rem;
+  }
+
+  .waiting__date {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.58rem;
+  }
+
+  .vines__drape {
+    width: min(34vw, 11rem);
+    height: min(42vh, 9rem);
+  }
+
+  .vines__hedge {
+    height: clamp(3rem, 12vh, 5rem);
+  }
+
+  .celebration__title {
+    font-size: clamp(1.6rem, 6vh, 2.6rem);
+  }
+
+  .celebration__name {
+    font-size: clamp(2rem, 9vh, 3.4rem);
+  }
+
+  .celebration__message {
+    margin-top: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .celebration__again {
+    margin-top: 0.9rem;
+    padding: 0.6rem 1.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- the sealed gate ------------------------------------------- */
+
+.gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gate__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  width: min(100%, 30rem);
+}
+
+.gate__seal {
+  width: clamp(4.5rem, 13vw, 6.5rem);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 10px 20px rgba(125, 15, 60, 0.26));
+}
+
+.gate__eyebrow {
+  margin: 1.1rem 0 0;
+  max-width: 100%;
+  font-size: clamp(0.62rem, 1.5vw, 0.78rem);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+}
+
+.gate__title {
+  margin: 0.3rem 0 0;
+  font-family: var(--font-script);
+  font-weight: 400;
+  font-size: clamp(2.4rem, 7.5vw, 4.4rem);
+  line-height: 1.05;
+  color: var(--rose-deep);
+  text-shadow: 0 12px 32px rgba(196, 106, 138, 0.22);
+}
+
+.gate__invite {
+  margin: 0.5rem 0 0;
+  max-width: 40ch;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(0.98rem, 2.3vw, 1.25rem);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.gate__form {
+  margin-top: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.gate__label {
+  font-size: 0.58rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+}
+
+/* Styled as a line to write on rather than a form field. */
+.gate__input {
+  width: min(100%, 17rem);
+  margin-bottom: 0.7rem;
+  padding: 0.3rem 0.4rem;
+  border: none;
+  border-bottom: 1.5px solid rgba(194, 97, 127, 0.42);
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 4vw, 1.8rem);
+  font-style: italic;
+  color: var(--rose-deep);
+  text-align: center;
+  letter-spacing: 0.04em;
+  transition: border-color 0.35s ease;
+}
+
+.gate__input:focus {
+  outline: none;
+  border-bottom-color: var(--rose-deep);
+}
+
+.gate__button {
+  padding: 0.75rem 2.2rem;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.92), rgba(255, 232, 240, 0.78));
+  box-shadow: var(--shadow-soft);
+  color: var(--rose-deep);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.gate__button:hover {
+  transform: translateY(-1px);
+}
+
+.gate__button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.gate__button:focus-visible {
+  outline: 2px solid var(--rose);
+  outline-offset: 4px;
+}
+
+.gate__hint {
+  margin: 1.2rem 0 0;
+  max-width: 32ch;
+  min-height: 2.6em;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: rgba(92, 58, 74, 0.56);
+}
+
+/* ---------- the letter opening ---------------------------------------- */
+
+.letter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.letter__stage {
+  position: relative;
+  width: min(88vw, 27rem);
+  aspect-ratio: 4 / 3;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+
+/* The sheet sits behind the envelope, so it only becomes visible as it clears
+   the pocket's top edge - which is what makes it read as coming out. */
+.letter__sheet {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 24%;
+  height: 74%;
+  z-index: 1;
+}
+
+.letter__paper {
+  height: 100%;
+  padding: clamp(1.2rem, 4vw, 2rem) clamp(1.1rem, 4vw, 1.9rem);
+  border-radius: 3px;
+  text-align: left;
+  /* Aged paper: a warm base, a slight gradient across it, and two faint
+     blotches so it isn't a flat rectangle. */
+  background:
+    radial-gradient(60% 45% at 78% 18%, rgba(196, 154, 108, 0.13), rgba(196, 154, 108, 0) 70%),
+    radial-gradient(50% 40% at 16% 82%, rgba(176, 132, 86, 0.12), rgba(176, 132, 86, 0) 70%),
+    linear-gradient(168deg, #fdf6e6 0%, #f8ecd6 55%, #f2e2c6 100%);
+  box-shadow:
+    0 18px 40px -20px rgba(120, 82, 60, 0.42),
+    inset 0 0 40px rgba(160, 120, 80, 0.09);
+}
+
+.letter__opening {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.05rem, 3.2vw, 1.5rem);
+  color: #6b4a34;
+}
+
+.letter__body {
+  margin: 0.7rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(0.92rem, 2.6vw, 1.15rem);
+  line-height: 1.65;
+  color: rgba(90, 62, 44, 0.86);
+}
+
+.letter__signoff {
+  margin: 1rem 0 0;
+  font-family: var(--font-script);
+  font-size: clamp(1.2rem, 3.6vw, 1.7rem);
+  color: #8d5a3c;
+}
+
+.letter__envelope {
+  position: absolute;
+  inset: 18% 0 0;
+  z-index: 2;
+  transform-style: preserve-3d;
+}
+
+.letter__envelopeSkin {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.letter__pocket {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background:
+    linear-gradient(172deg, #f3e3c8 0%, #e9d5b4 60%, #dfc79f 100%);
+  box-shadow:
+    0 26px 50px -24px rgba(110, 76, 52, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* The flap hinges on its top edge and swings back over the envelope. */
+.letter__flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 62%;
+  transform-origin: top center;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: linear-gradient(184deg, #f7e9d2 0%, #ecd9ba 62%, #e0c9a4 100%);
+  box-shadow: 0 10px 20px -12px rgba(110, 76, 52, 0.45);
+}
+
+/* Sits on the envelope at the flap's point, not inside the flap. */
+.letter__seal {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  z-index: 3;
+  width: clamp(2.2rem, 7vw, 3.1rem);
+  aspect-ratio: 1;
+  margin: calc(clamp(2.2rem, 7vw, 3.1rem) / -2) 0 0 calc(clamp(2.2rem, 7vw, 3.1rem) / -2);
+  border-radius: 48% 52% 46% 54% / 50% 46% 54% 50%;
+  background: radial-gradient(circle at 36% 32%, #e0508a 0%, #b81a5c 55%, #7d0f3c 100%);
+  box-shadow: 0 6px 14px -6px rgba(125, 15, 60, 0.6);
+}
+
+.letter__skip {
+  padding: 0.5rem 1.3rem;
+  border: 1px solid rgba(194, 97, 127, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--plum-soft);
+  font-family: var(--font-ui);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.letter__skip:focus-visible {
+  outline: 2px solid var(--rose);
+  outline-offset: 3px;
+}
+
+@media (max-height: 560px) {
+  .letter__stage {
+    width: min(60vw, 19rem);
+  }
+
+  .gate__seal {
+    width: 3.4rem;
+  }
+
+  .gate__form {
+    margin-top: 1rem;
+  }
+
+  .gate__hint {
+    margin-top: 0.7rem;
+  }
+}

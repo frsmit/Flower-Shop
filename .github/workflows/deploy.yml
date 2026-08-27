@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you redeploy by hand from the Actions tab without pushing anything.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# If you push twice quickly, let the newer run win.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Set these under Settings -> Secrets and variables -> Actions.
+      # Anything missing falls back to the neutral defaults in src/config.js.
+      #
+      # These are BUILD-TIME values: Vite inlines them into the bundle, so they
+      # keep the personal details out of the repo but are readable by anyone who
+      # opens the page. Secrets here are about the repo, not the visitor.
+      - run: npm run build
+        env:
+          VITE_BIRTHDAY_NAME: ${{ secrets.VITE_BIRTHDAY_NAME }}
+          VITE_BIRTHDAY_DATE: ${{ secrets.VITE_BIRTHDAY_DATE }}
+          VITE_CELEBRATION_HOURS: ${{ secrets.VITE_CELEBRATION_HOURS }}
+          VITE_SECRET_HASH: ${{ secrets.VITE_SECRET_HASH }}
+          VITE_SECRET_HINT: ${{ secrets.VITE_SECRET_HINT }}
+          VITE_LETTER_OPENING: ${{ secrets.VITE_LETTER_OPENING }}
+          VITE_LETTER_BODY: ${{ secrets.VITE_LETTER_BODY }}
+          VITE_LETTER_SIGNOFF: ${{ secrets.VITE_LETTER_SIGNOFF }}
+          VITE_BIRTHDAY_MESSAGE: ${{ secrets.VITE_BIRTHDAY_MESSAGE }}
+
+      - uses: actions/configure-pages@v5
+
+      # `base: './'` in vite.config.js is what makes this work from the
+      # /<repo>/ subpath Pages serves from.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
