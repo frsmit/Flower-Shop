@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import PetalField from './components/PetalField.jsx';
 import Countdown from './components/Countdown.jsx';
@@ -8,6 +8,8 @@ import Bougainvillea from './components/Bougainvillea.jsx';
 import Celebration from './components/Celebration.jsx';
 import Gate from './components/Gate.jsx';
 import LetterOpening from './components/LetterOpening.jsx';
+import ButterflyFlight from './components/ButterflyFlight.jsx';
+import PoemSheet from './components/PoemSheet.jsx';
 import {
   HOUR,
   getCountdownParts,
@@ -16,6 +18,8 @@ import {
 } from './hooks/useCountdown.js';
 import useCelebrationConfig from './hooks/useCelebrationConfig.js';
 import useUnsealed from './hooks/useUnsealed.js';
+import useReadLines from './hooks/useReadLines.js';
+import { dayOfLine, unlockedCount } from './lib/poem.js';
 
 function nextYear(timestamp) {
   const date = new Date(timestamp);
@@ -29,6 +33,9 @@ const DATE_FORMAT = {
   month: 'long',
   year: 'numeric',
 };
+
+// How long a picked line stays up before the whispers resume.
+const LINE_DWELL = 11000;
 
 export default function App() {
   const { config } = useCelebrationConfig();
@@ -71,6 +78,51 @@ export default function App() {
   // far too small to see. At 1/2000 the bucket moves about every four hours.
   const progress = Math.round(getYearProgress(target, now) * 2000) / 2000;
 
+  // ---- the poem ----------------------------------------------------------
+  const poem = config.poem ?? [];
+  // An integer that only moves at a day boundary, so the second-by-second tick
+  // above can't reach the butterflies. Everything below is memoised on this:
+  // re-rendering ~28 SVGs once a second is exactly the mistake the
+  // bougainvillea already had to be rescued from.
+  const unlocked = unlockedCount(target, now, poem.length, celebrating);
+
+  const { readLines, markRead } = useReadLines();
+  const [activeIndex, setActiveIndex] = useState(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const dwell = useRef(0);
+
+  const pickLine = useCallback(
+    (index) => {
+      setActiveIndex((current) => (current === index ? null : index));
+      markRead(index);
+    },
+    [markRead],
+  );
+
+  // Let the line go by itself, so she isn't left with one stuck on screen and
+  // no obvious way to dismiss it.
+  useEffect(() => {
+    if (activeIndex === null) return;
+    dwell.current = window.setTimeout(() => setActiveIndex(null), LINE_DWELL);
+    return () => window.clearTimeout(dwell.current);
+  }, [activeIndex]);
+
+  const openSheet = useCallback(() => {
+    setActiveIndex(null);
+    setSheetOpen(true);
+  }, []);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+
+  const markAllRead = useCallback(() => {
+    for (let i = 0; i < unlocked; i += 1) markRead(i);
+  }, [unlocked, markRead]);
+
+  const unread = useMemo(() => {
+    let count = 0;
+    for (let i = 0; i < unlocked; i += 1) if (!readLines.has(i)) count += 1;
+    return count;
+  }, [unlocked, readLines]);
+
   // Keyed on the timestamp rather than a Date object, so the formatter isn't
   // rebuilt on every tick.
   const prettyDate = useMemo(
@@ -86,6 +138,21 @@ export default function App() {
       <PetalField density={celebrating ? 1.5 : 1} />
       <Bougainvillea />
 
+      {/* Only once she's through the seal - butterflies drifting past the
+          envelope would give away that there's more here than a letter. */}
+      {phase === 'open' && unlocked > 0 ? (
+        <ButterflyFlight
+          poem={poem}
+          unlocked={unlocked}
+          readLines={readLines}
+          activeIndex={activeIndex}
+          onPick={pickLine}
+          // On the day itself the whole garden lifts off at once, and the poem
+          // is finally readable end to end.
+          departing={celebrating}
+        />
+      ) : null}
+
       <main className="stage">
         <AnimatePresence mode="wait">
           {phase === 'sealed' ? (
@@ -98,6 +165,7 @@ export default function App() {
               name={config.name}
               title={config.birthdayTitle}
               message={config.birthdayMessage}
+              onReadPoem={poem.length ? openSheet : undefined}
             />
           ) : (
             <motion.section
@@ -141,10 +209,28 @@ export default function App() {
               <div className="waiting__lower">
                 <BloomProgress progress={progress} days={days} />
                 <div className="waiting__aside">
-                  <Whispers lines={config.whispers} />
-                  <p className="waiting__date">
-                    <span aria-hidden="true">🌸</span> {prettyDate}
-                  </p>
+                  <Whispers
+                    lines={config.whispers}
+                    override={activeIndex === null ? null : poem[activeIndex]}
+                    overrideLabel={
+                      activeIndex === null ? null : dayOfLine(activeIndex)
+                    }
+                  />
+
+                  {/* Before the poem starts unlocking there's nothing to open,
+                      so the date keeps the slot - the row would collapse
+                      lopsidedly against the ring without it. */}
+                  {unlocked > 0 ? (
+                    <button type="button" className="poem-open" onClick={openSheet}>
+                      <span aria-hidden="true">🦋</span>
+                      read the poem so far
+                      {unread > 0 ? <span className="poem-open__count">{unread} new</span> : null}
+                    </button>
+                  ) : (
+                    <p className="waiting__date">
+                      <span aria-hidden="true">🌸</span> {prettyDate}
+                    </p>
+                  )}
                 </div>
               </div>
             </motion.section>
@@ -152,6 +238,18 @@ export default function App() {
         </AnimatePresence>
       </main>
 
+      <AnimatePresence>
+        {sheetOpen ? (
+          <PoemSheet
+            key="sheet"
+            poem={poem}
+            unlocked={unlocked}
+            readLines={readLines}
+            onClose={closeSheet}
+            onReadAll={markAllRead}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

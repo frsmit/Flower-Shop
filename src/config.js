@@ -1,3 +1,5 @@
+import { DEFAULT_POEM, parsePoem } from './lib/poem.js';
+
 /**
  * Everything you'll want to tweak, with the personal bits pulled out into
  * environment variables so they don't have to live in the repo.
@@ -84,6 +86,21 @@ export const defaultConfig = {
     'something has been growing here since long before today, and it is nearly ready. Come back often - it is counting.',
   ),
   letterSignoff: pick(env.VITE_LETTER_SIGNOFF, 'with love'),
+
+  // ---- the poem ----------------------------------------------------------
+  // One line unlocks per day, each carried in by a butterfly that then stays on
+  // the page. The LAST line is the birthday's own and never unlocks early, so
+  // write it as the closing one.
+  //
+  // The schedule counts back from the end, which means the length sets when it
+  // starts: 28 lines begin unlocking 28 days out, 12 lines begin 12 days out.
+  // Change the length freely - but the defaults below were written for a long
+  // wait, and a couple of them ('look how the garden is filling up') will read
+  // oddly if there are only three butterflies on screen.
+  //
+  // Put your own in VITE_POEM, one line each, separated by real newlines or by
+  // ' | '. See .env.example.
+  poem: parsePoem(env.VITE_POEM, DEFAULT_POEM),
 
   // Little notes that rotate above the timer while we wait.
   whispers: [

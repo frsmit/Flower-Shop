@@ -24,6 +24,12 @@
   --font-display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
   --font-script: "Parisienne", "Cormorant Garamond", cursive;
   --font-ui: "Quicksand", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+
+  /* One source of truth for how tall the bottom hedge is. The butterflies perch
+     on it by a fraction of this, so the two have to move together - hard-coded
+     separately, they drifted apart the moment the hedge shrank for phones and
+     left butterflies hovering in the empty air above it. */
+  --hedge-h: clamp(8.5rem, 24vh, 15rem);
 }
 
 * {
@@ -301,6 +307,13 @@ body {
 
 .waiting__lower {
   margin-top: clamp(1.4rem, 3.5vh, 2.4rem);
+  /* Explicit, not shrink-to-fit. Left to size itself this row resolved to the
+     sum of the ring's width and the aside's *flex-basis* - a few pixels under
+     what the two of them plus the gap actually need - so it wrapped onto two
+     rows and pushed the page past one viewport. Any change to the aside's
+     contents could tip it over. At 100% the wrap only happens when the screen
+     is genuinely too narrow, which is what it is there for. */
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -524,7 +537,7 @@ body {
      width from the viewBox ratio and `right: 0` is quietly ignored, which left
      a bare strip down the right-hand side. */
   width: 100%;
-  height: clamp(8.5rem, 24vh, 15rem);
+  height: var(--hedge-h);
   display: block;
   mask-image: linear-gradient(to top, #000 62%, transparent 100%);
   -webkit-mask-image: linear-gradient(to top, #000 62%, transparent 100%);
@@ -634,8 +647,8 @@ body {
     height: min(30vh, 12rem);
   }
 
-  .vines__hedge {
-    height: clamp(6rem, 17vh, 9rem);
+  :root {
+    --hedge-h: clamp(6rem, 17vh, 9rem);
   }
 
   .celebration__message {
@@ -686,8 +699,8 @@ body {
     font-size: 0.95rem;
   }
 
-  .vines__hedge {
-    height: clamp(4rem, 13vh, 6.5rem);
+  :root {
+    --hedge-h: clamp(4rem, 13vh, 6.5rem);
   }
 }
 
@@ -780,8 +793,8 @@ body {
     height: min(42vh, 9rem);
   }
 
-  .vines__hedge {
-    height: clamp(3rem, 12vh, 5rem);
+  :root {
+    --hedge-h: clamp(3rem, 12vh, 5rem);
   }
 
   .celebration__title {
@@ -1099,5 +1112,357 @@ body {
 
   .gate__hint {
     margin-top: 0.7rem;
+  }
+}
+
+/* ---------- butterflies + the poem ------------------------------------ */
+
+/* Above the plant (z-index 0) because they've landed *on* it, and above the
+   stage so a butterfly on the hedge isn't clipped by the text column. The
+   layer itself is inert - only the butterflies take a click. */
+.flight {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.butterfly {
+  position: absolute;
+  width: calc(3.3rem * var(--bf-scale));
+  height: calc(2.5rem * var(--bf-scale));
+  /* Centred with a negative margin rather than translate(-50%): framer-motion
+     owns this element's `transform` for the flight path, and a CSS transform
+     here would be overwritten the moment it animates. */
+  margin-left: calc(-1.65rem * var(--bf-scale));
+  left: calc(var(--bf-x) * 1%);
+  padding: 0;
+  border: 0;
+  background: none;
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Riding the hedge: measured from the bottom as a fraction of the hedge's own
+   height, so they stay on the plant when it resizes instead of sliding off. */
+.butterfly--hedge {
+  bottom: calc(0.4rem + var(--bf-y) * var(--hedge-h));
+}
+
+.butterfly--corner {
+  top: calc(var(--bf-y) * 1%);
+}
+
+.butterfly__svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 4px 7px rgba(150, 84, 110, 0.28));
+}
+
+/* fill-box so each wing hinges at the body, not at the viewBox origin. */
+.butterfly__wing {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: flutter var(--bf-flutter) ease-in-out var(--bf-offset) infinite;
+}
+
+@keyframes flutter {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  46% {
+    transform: scaleX(0.62);
+  }
+  54% {
+    transform: scaleX(0.66);
+  }
+}
+
+/* One she hasn't opened yet keeps a small light on it, so "there's a new one
+   today" is readable at a glance without counting. */
+.butterfly__pip {
+  position: absolute;
+  top: -0.1rem;
+  right: -0.1rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75), 0 0 10px 2px rgba(232, 184, 120, 0.9);
+  animation: pip 2.6s ease-in-out infinite;
+}
+
+.butterfly--read .butterfly__pip {
+  display: none;
+}
+
+@keyframes pip {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.butterfly:focus-visible {
+  outline: none;
+}
+
+.butterfly:focus-visible .butterfly__svg {
+  filter: drop-shadow(0 0 3px var(--rose-deep)) drop-shadow(0 0 7px var(--rose));
+}
+
+.butterfly.is-active .butterfly__svg {
+  filter: drop-shadow(0 4px 7px rgba(150, 84, 110, 0.28))
+    drop-shadow(0 0 12px rgba(232, 184, 120, 0.95));
+}
+
+/* A poem line borrowing the whisper slot. Less faded than a whisper, because
+   it's the thing she came back for. */
+.whispers__line--poem {
+  opacity: 1;
+  color: var(--rose-deep);
+}
+
+.whispers__day {
+  display: block;
+  font-family: var(--font-ui);
+  font-style: normal;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  margin-bottom: 0.35rem;
+}
+
+.poem-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.55rem 1.2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--glass-line);
+  box-shadow: var(--shadow-soft);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  cursor: pointer;
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+
+.poem-open:hover {
+  transform: translateY(-1px);
+  color: var(--rose-deep);
+}
+
+.poem-open:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 3px;
+}
+
+.poem-open__count {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #5a3a1c;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.celebration__poem {
+  margin-top: 0.9rem;
+  padding: 0.6rem 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, 0.6);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--plum);
+  cursor: pointer;
+}
+
+.celebration__poem:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 3px;
+}
+
+/* ---------- the poem sheet -------------------------------------------- */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* The panel animates in from translateY(100%), which sticks out below this
+     container. Without clipping it, that overflow grows the document and the
+     whole page gains a scrollbar mid-animation - which on a layout pinned to a
+     single viewport drags the bougainvillea off its own bottom edge. */
+  overflow: hidden;
+  background: rgba(92, 58, 74, 0.34);
+  /* No backdrop-filter here on purpose. The petal canvas behind repaints every
+     frame, so blurring it would re-blur the whole backdrop 30 times a second
+     for as long as the sheet is open - the same trap the glass tiles were
+     pulled out of. A flat wash reads the same. */
+}
+
+.sheet__panel {
+  width: min(100%, 40rem);
+  max-height: min(82vh, 44rem);
+  display: flex;
+  flex-direction: column;
+  padding: 1.4rem clamp(1.1rem, 4vw, 2.2rem) 1.1rem;
+  border-radius: 1.6rem 1.6rem 0 0;
+  background: linear-gradient(170deg, #fffaf7 0%, #fdf1f3 100%);
+  border: 1px solid var(--glass-line);
+  border-bottom: 0;
+  box-shadow: 0 -30px 70px -30px rgba(150, 84, 110, 0.55);
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid rgba(199, 150, 172, 0.28);
+}
+
+.sheet__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+}
+
+.sheet__close {
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, 0.8);
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  cursor: pointer;
+}
+
+.sheet__close:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 2px;
+}
+
+/* The page itself never scrolls - the plant is pinned to its edges. This does,
+   and `contain` stops a flick at the end of the list from scrolling whatever
+   is behind it. */
+.sheet__list {
+  flex: 1;
+  margin: 0;
+  padding: 0.9rem 0 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet__item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+  padding: 0.5rem 0.2rem;
+  text-align: left;
+}
+
+.sheet__day {
+  flex: 0 0 1.6rem;
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--plum-soft);
+  opacity: 0.8;
+  text-align: right;
+}
+
+.sheet__line {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 2.6vw, 1.22rem);
+  line-height: 1.5;
+  color: var(--plum);
+}
+
+.sheet__rest .sheet__line {
+  font-style: italic;
+  color: var(--plum-soft);
+  opacity: 0.55;
+}
+
+.sheet__new {
+  flex: 0 0 auto;
+  /* Top-aligned, not centred: on a line that wraps to two rows a centred badge
+     floats between them and stops reading as a tag on the line. */
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #5a3a1c;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sheet__foot {
+  margin: 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(199, 150, 172, 0.28);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  text-align: center;
+}
+
+/* Short screens have no room in the top corners - the name is already there,
+   and a butterfly behind it reads as a smudge. The hedge keeps them all. */
+@media (max-height: 640px) {
+  .butterfly--corner {
+    display: none;
+  }
+
+  .butterfly {
+    width: calc(2.5rem * var(--bf-scale));
+    height: calc(1.9rem * var(--bf-scale));
+    margin-left: calc(-1.25rem * var(--bf-scale));
+  }
+
+  .sheet__panel {
+    max-height: 92vh;
+  }
+}
+
+/* The wings are the one thing here that animates forever. Hold them open. */
+@media (prefers-reduced-motion: reduce) {
+  .butterfly__wing,
+  .butterfly__pip {
+    animation: none !important;
+  }
+
+  .butterfly__pip {
+    opacity: 1;
   }
 }

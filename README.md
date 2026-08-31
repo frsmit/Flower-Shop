@@ -5,8 +5,10 @@ An aesthetic, flowery countdown to a friend's birthday — **27 September**.
 While you wait, bougainvillea frames the page - drapes hanging from the top two
 corners and a hedge along the bottom - papery bracts drift down the screen, a
 ring fills up as the year runs out, and the seconds roll over one digit at a
-time. At midnight on the 27th the whole thing turns into a celebration screen
-with confetti.
+time. Every day of the last month a butterfly arrives carrying one line of a
+poem and settles on the plant, so the garden fills up as the day gets closer. At
+midnight on the 27th they all lift off, the poem finishes, and the whole thing
+turns into a celebration screen with confetti.
 
 ## Running it
 
@@ -109,6 +111,66 @@ The hashing uses `crypto.subtle`, which needs https or localhost. Every real
 host is https, so this only matters if you serve the built files over plain http
 from a LAN address.
 
+## A poem in flight
+
+One line of a poem unlocks per day of the wait. Each one arrives on a butterfly
+that swoops in and settles on the bougainvillea, and stays there — so the garden
+fills up as the day gets closer and the countdown is readable without reading
+the digits. Tap a butterfly and its line surfaces where the whispers sit. **Read
+the poem so far** opens all of them in a sheet.
+
+The closing line is the birthday's own. It never unlocks early: at midnight every
+butterfly lifts off the page at once, and the poem is finally readable end to
+end from the celebration screen.
+
+Write your own in `VITE_POEM`, one line each, separated by newlines or by ` | `:
+
+```ini
+VITE_POEM="Somewhere a chrysalis decided that today was close enough.
+You were always the kind of quiet that had a whole summer folded inside it.
+Happy birthday. Every wing here came to tell you the same thing."
+```
+
+Leave it blank and you get the 28 lines in
+[`src/lib/poem.js`](src/lib/poem.js). Each one stands on its own, so they're
+order-independent — you can reorder them, cut some, or swap individual lines
+without anything else needing to change.
+
+**The length sets the schedule.** It counts back from the birthday, so 28 lines
+start unlocking 28 days out and 12 lines start 12 days out — change the length
+freely, nothing needs adjusting. Just keep in mind that the last line is the one
+that lands at midnight, on the celebration screen, so it wants to be the one you
+would want read last.
+
+There is one more day in the wait than there are lines to fill it, so one day
+comes up empty. It's the first one, deliberately — a quiet day at the very start,
+before you've even sent the link, costs nothing, whereas the last day before her
+birthday is the worst possible one for nothing to arrive.
+
+Which lines she has opened is remembered in `localStorage`, so an unread
+butterfly carries a small gold light and the button says how many are new. That
+is the part that makes coming back daily legible; without it every butterfly
+looks the same.
+
+### Things worth knowing if you change it
+
+- **The butterflies are DOM, not canvas.** The petals behind them are a canvas
+  because nothing ever has to click a petal. These have to be tappable and
+  reachable by keyboard, which a canvas gives you neither of for free.
+- **Their positions are hashed from the index, not random.** A butterfly keeps
+  its perch across reloads. `Math.random()` moved the whole garden on every
+  refresh, which reads as a glitch rather than as life — half the point is that
+  she recognises where yesterday's landed.
+- **`unlockedCount` is an integer that only moves at a day boundary.** The app
+  re-renders every second; everything below that integer is memoised on it, so
+  the clock can't reach the butterflies. Re-rendering ~28 SVGs a second is the
+  same mistake the bougainvillea had to be rescued from.
+- **The line stays off the accessibility tree until it's picked.** Tabbing
+  through would otherwise read the entire poem out in one go.
+- **`src/lib/poem.js` must not import React.** `src/config.js` reaches it, and
+  the Express server imports `config.js` directly — which is why `DAY` is
+  redeclared there instead of imported from `useCountdown.js`.
+
 ## Putting it online (free, and it stays up)
 
 **Deploy it as a static site.** `npm run build` produces a `dist/` folder that is
@@ -172,6 +234,7 @@ src/hooks/
   useCountdown.js     the one ticking clock (useNow) + pure derivations
   useCelebrationConfig.js   fetches the server config, falls back to bundled
   useReducedMotion.js
+  useReadLines.js     which lines she has already opened
 src/components/
   PetalField.jsx      canvas petals drifting down
   Countdown.jsx       the four glass tiles
@@ -182,7 +245,10 @@ src/components/
   Gate.jsx            the wax seal and the passphrase
   LetterOpening.jsx   seal lifts, flap opens, letter rises
   Celebration.jsx     confetti + the birthday message
+  ButterflyFlight.jsx one butterfly per unlocked line, landed on the plant
+  PoemSheet.jsx       the whole poem so far, over the page
 src/lib/secret.js     hashing and comparison for the passphrase
+src/lib/poem.js       the poem, and which of it she has earned yet
 scripts/make-key.mjs  npm run key -- "phrase"
 src/styles/global.css
 ```
@@ -238,7 +304,7 @@ A few decisions worth knowing about:
 
 ## Ideas for later
 
-- A photo or a memory for each day of the wait
+- A photo to go with each line of the poem
 - A guestbook other friends can sign (the Express side is already there)
 - Music that fades in on the day
 - A shareable link with the name baked into the URL

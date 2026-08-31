@@ -5,7 +5,7 @@ import useReducedMotion from '../hooks/useReducedMotion.js';
 
 const PETAL_COLORS = ['#f4a0bb', '#e6a2dd', '#f9d38a', '#fbc9d8', '#a9c79c', '#fff3d6'];
 
-export default function Celebration({ name, title, message }) {
+export default function Celebration({ name, title, message, onReadPoem }) {
   const reduced = useReducedMotion();
   const timers = useRef([]);
 
@@ -97,6 +97,23 @@ export default function Celebration({ name, title, message }) {
       >
         throw more petals
       </motion.button>
+
+      {/* The payoff. Every butterfly has just lifted off the page; this is
+          where the month of one-line-a-day finally reads as one poem. */}
+      {onReadPoem ? (
+        <motion.button
+          type="button"
+          className="celebration__poem"
+          onClick={onReadPoem}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.25, duration: 0.8 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.97 }}
+        >
+          <span aria-hidden="true">🦋</span> read the whole poem
+        </motion.button>
+      ) : null}
     </motion.section>
   );
 }
