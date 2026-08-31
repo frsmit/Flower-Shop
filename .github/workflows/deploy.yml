@@ -42,6 +42,9 @@ jobs:
           VITE_CELEBRATION_HOURS: ${{ secrets.VITE_CELEBRATION_HOURS }}
           VITE_SECRET_HASH: ${{ secrets.VITE_SECRET_HASH }}
           VITE_SECRET_HINT: ${{ secrets.VITE_SECRET_HINT }}
+          # Without this the build silently falls back to the impersonal
+          # placeholder poem in src/lib/poem.js - which looks like it worked.
+          VITE_POEM: ${{ secrets.VITE_POEM }}
           VITE_LETTER_OPENING: ${{ secrets.VITE_LETTER_OPENING }}
           VITE_LETTER_BODY: ${{ secrets.VITE_LETTER_BODY }}
           VITE_LETTER_SIGNOFF: ${{ secrets.VITE_LETTER_SIGNOFF }}
