@@ -210,6 +210,17 @@ const HEDGE_H = 230;
 const HEDGE_BASE = 230;
 const HEDGE_CANES = 22;
 
+/**
+ * How many canes actually animate, counted from the front. See `Cane` for why
+ * this is not simply "all of them".
+ *
+ * Raise these if the plant ever looks too still; every one you add puts another
+ * few hundred SVG nodes back on the per-frame raster path, so add them one at a
+ * time and with the frame counter open.
+ */
+const SWAYING_HEDGE_CANES = 5;
+const SWAYING_DRAPE_CANES = 3;
+
 const HEDGE = (() => {
   const rng = mulberry32(20260927); // the big day, as a seed
 
@@ -402,11 +413,34 @@ function Cluster({ cluster, color }) {
   );
 }
 
-function Cane({ cane }) {
+/**
+ * `sways` is false for everything but the front-most canes, and that is a
+ * performance decision rather than an aesthetic one.
+ *
+ * An animated transform on an SVG <g> is not composited: the browser has to
+ * re-rasterise the group's entire subtree every frame. A cane's subtree is its
+ * canePath plus a dozen leaves plus ~15 clusters, and every cluster is a <use>
+ * that expands into 18 more nodes - so one swaying cane is ~300 vector nodes
+ * redrawn 60 times a second. All 48 of them swaying came to roughly 13,000
+ * nodes per frame, continuously, for the entire life of the page. Both drapes
+ * and the hedge are masked as well, so each frame also re-applied a mask over
+ * the whole element.
+ *
+ * The canes are depth-sorted back-to-front, so the last few in each set are the
+ * ones in front of everything else and the only ones whose motion is legible.
+ * The rest sit behind them, hazed and half-occluded, moving 1.25 degrees. Left
+ * still they cost nothing and read as a static backdrop, which - as a bonus the
+ * profiler did not ask for - gives the front canes something to move against.
+ */
+function Cane({ cane, sways }) {
   return (
     <g
-      className="vine__cane"
-      style={{ animationDelay: `${cane.delay}s`, animationDuration: `${cane.duration}s` }}
+      className={sways ? 'vine__cane' : undefined}
+      style={
+        sways
+          ? { animationDelay: `${cane.delay}s`, animationDuration: `${cane.duration}s` }
+          : undefined
+      }
     >
       <path
         d={canePath(cane.p)}
@@ -577,7 +611,7 @@ function Drape({ canes, side }) {
     >
       <Haze canes={canes} />
       {canes.map((cane, i) => (
-        <Cane key={i} cane={cane} />
+        <Cane key={i} cane={cane} sways={i >= canes.length - SWAYING_DRAPE_CANES} />
       ))}
     </svg>
   );
@@ -654,7 +688,7 @@ function Hedge() {
       ))}
 
       {HEDGE.map((cane, i) => (
-        <Cane key={i} cane={cane} />
+        <Cane key={i} cane={cane} sways={i >= HEDGE.length - SWAYING_HEDGE_CANES} />
       ))}
     </svg>
   );

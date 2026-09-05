@@ -15,6 +15,15 @@ const PALETTE = [
 const TAU = Math.PI * 2;
 const rand = (min, max) => min + Math.random() * (max - min);
 
+// The size every sprite is rasterised at, and the largest a petal ever gets.
+// Petals are only ever scaled *down* from here, so a cached bitmap never has to
+// be magnified past the resolution it was drawn at.
+const REF = 26;
+// Half the sprite's side, in petal-local units. The bract reaches a full REF
+// above and below the origin and about 0.74 of one to each side; the remainder
+// is padding for the vein strokes.
+const HALF = REF + 3;
+
 function makePetal(width, height, seeded) {
   const size = rand(9, 26);
   return {
@@ -30,23 +39,20 @@ function makePetal(width, height, seeded) {
     angle: rand(0, TAU),
     tilt: rand(0.45, 1),
     opacity: rand(0.35, 0.85),
-    colors: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-    // Built on first draw and reused; must be reset here so a recycled petal
-    // doesn't keep the previous one's colours.
-    gradient: null,
+    // Which of the twelve cached sprites this one blits. Colour and vein detail
+    // are baked in, so nothing about how the petal looks is decided again after
+    // this line — a recycled petal picks a new sprite along with everything
+    // else, which is what keeps it from keeping the old one's colours.
+    sprite: Math.floor(Math.random() * PALETTE.length) * 2 + (size > 14 ? 1 : 0),
   };
 }
 
-function drawPetal(ctx, petal) {
-  const { size, colors } = petal;
+function drawPetal(ctx, size, colors, veined) {
+  const gradient = ctx.createLinearGradient(0, -size, 0, size);
+  gradient.addColorStop(0, colors[0]);
+  gradient.addColorStop(1, colors[1]);
 
-  if (!petal.gradient) {
-    petal.gradient = ctx.createLinearGradient(0, -size, 0, size);
-    petal.gradient.addColorStop(0, colors[0]);
-    petal.gradient.addColorStop(1, colors[1]);
-  }
-
-  ctx.fillStyle = petal.gradient;
+  ctx.fillStyle = gradient;
   ctx.beginPath();
   // A bract, not a petal: pointed at the tip, widest below the middle, and
   // narrowing again to the little stalk it detached from.
@@ -66,7 +72,9 @@ function drawPetal(ctx, petal) {
   ctx.quadraticCurveTo(size * 0.08, 0, 0, size * 0.88);
   ctx.stroke();
 
-  if (size > 14) {
+  // Only the bigger bracts carry these, which is the whole reason there are two
+  // sprites per colour rather than one.
+  if (veined) {
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.26)';
     ctx.lineWidth = Math.max(0.4, size * 0.03);
     ctx.beginPath();
@@ -78,6 +86,45 @@ function drawPetal(ctx, petal) {
     }
     ctx.stroke();
   }
+}
+
+/**
+ * Every petal shape the field can hold, rasterised once up front.
+ *
+ * The drawing only ever varies by palette and by whether it carries the
+ * cross-veins - twelve possibilities in total. Everything else that makes one
+ * petal look unlike another (size, spin, tilt, opacity) is a transform applied
+ * at blit time and costs nothing to vary.
+ *
+ * Traced live, each petal was five bezier curves, a quadratic midrib and, for
+ * the big ones, six more quadratics, all rebuilt from scratch every frame; a
+ * hundred of those is a great deal of path work to hand the rasteriser thirty
+ * times a second for a picture that never actually changes. As sprites it is a
+ * hundred blits of a bitmap the GPU already has.
+ *
+ * Supersampled at twice the device ratio on purpose: the sprite is drawn at REF
+ * and then scaled down to as little as a third of it, and a bract's tip goes
+ * visibly blunt when it comes off a bitmap rasterised at its own size.
+ */
+function buildSprites(dpr) {
+  const ss = dpr * 2;
+  const side = HALF * 2;
+
+  return PALETTE.flatMap((colors) =>
+    [false, true].map((veined) => {
+      const sprite = document.createElement('canvas');
+      sprite.width = Math.ceil(side * ss);
+      sprite.height = Math.ceil(side * ss);
+
+      const ctx = sprite.getContext('2d');
+      // Petal-local units in, device pixels out, origin in the middle - so the
+      // drawing code below is identical to what it was drawing in place.
+      ctx.setTransform(ss, 0, 0, ss, HALF * ss, HALF * ss);
+      drawPetal(ctx, REF, colors, veined);
+
+      return sprite;
+    }),
+  );
 }
 
 function PetalField({ density = 1 }) {
@@ -92,6 +139,8 @@ function PetalField({ density = 1 }) {
     let width = 0;
     let height = 0;
     let petals = [];
+    let sprites = [];
+    let spriteDpr = 0;
     let raf = 0;
     let last = performance.now();
 
@@ -110,6 +159,14 @@ function PetalField({ density = 1 }) {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // Rebuilt only when the ratio genuinely moves. A window resize does not
+      // change how a sprite should be rasterised, and dragging a window edge
+      // fires this handler continuously.
+      if (dpr !== spriteDpr) {
+        sprites = buildSprites(dpr);
+        spriteDpr = dpr;
+      }
 
       const count = Math.round(
         Math.min(70, Math.max(18, (width * height) / 26000)) * density,
@@ -138,13 +195,22 @@ function PetalField({ density = 1 }) {
         }
 
         const drift = Math.sin(petal.phase) * petal.sway;
+        // The sprite is a REF-sized bract, so everything below is the same
+        // transform it always was with one extra factor folded in.
+        const scale = petal.size / REF;
         ctx.save();
         ctx.translate(petal.x + drift, petal.y);
         ctx.rotate(petal.angle + Math.sin(petal.phase) * 0.35);
         // Squash on the horizontal axis so petals feel like they're turning.
         ctx.scale(petal.tilt * (0.7 + 0.3 * Math.cos(petal.phase)), 1);
         ctx.globalAlpha = petal.opacity;
-        drawPetal(ctx, petal);
+        ctx.drawImage(
+          sprites[petal.sprite],
+          -HALF * scale,
+          -HALF * scale,
+          HALF * 2 * scale,
+          HALF * 2 * scale,
+        );
         ctx.restore();
       }
     };
