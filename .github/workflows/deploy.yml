@@ -49,6 +49,12 @@ jobs:
           VITE_LETTER_BODY: ${{ secrets.VITE_LETTER_BODY }}
           VITE_LETTER_SIGNOFF: ${{ secrets.VITE_LETTER_SIGNOFF }}
           VITE_BIRTHDAY_MESSAGE: ${{ secrets.VITE_BIRTHDAY_MESSAGE }}
+          VITE_BIRTHDAY_TITLE: ${{ secrets.VITE_BIRTHDAY_TITLE }}
+          # Same trap as VITE_POEM. Unset isn't an error here - it is a valid
+          # choice, and it reads as "no age configured", so the deployed build
+          # would skip the whole age-burn opening and look like it worked. It
+          # runs once, unattended, at midnight; there is no second attempt.
+          VITE_BIRTHDAY_AGE: ${{ secrets.VITE_BIRTHDAY_AGE }}
 
       - uses: actions/configure-pages@v5
 
