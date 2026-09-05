@@ -147,6 +147,14 @@ comes up empty. It's the first one, deliberately — a quiet day at the very sta
 before you've even sent the link, costs nothing, whereas the last day before her
 birthday is the worst possible one for nothing to arrive.
 
+**Once the day comes, the poem stays whole.** Past the celebration window the
+countdown rolls forward to next year's date so the digits keep meaning
+something - but the poem is deliberately *not* rescheduled against it. It would
+otherwise count back to zero and take every line she spent a month collecting
+away again on the morning of the 28th, which is the day she is most likely to
+come back and reread it. The trade is that a visitor in some later year finds
+the poem already complete instead of watching it drip a second time.
+
 Which lines she has opened is remembered in `localStorage`, so an unread
 butterfly carries a small gold light and the button says how many are new. That
 is the part that makes coming back daily legible; without it every butterfly
@@ -170,6 +178,131 @@ looks the same.
 - **`src/lib/poem.js` must not import React.** `src/config.js` reaches it, and
   the Express server imports `config.js` directly — which is why `DAY` is
   redeclared there instead of imported from `useCountdown.js`.
+
+## Ten for ten
+
+The last ten days get a song each, on their own tab: a disc that turns while it
+plays, the title under it, and the words below that. **It starts muted, every
+single visit.** She opens the tab, the disc turns, nothing makes a sound until
+she taps *tap for sound* — which is both the courtesy and, not coincidentally,
+the tap that browsers require before a page is allowed to make noise at all.
+
+The songs and their lyrics are **gitignored**. Copy the template and fill it in:
+
+```bash
+cp public/songs/songs.example.json public/songs/songs.json
+```
+
+Then drop the audio in next to it, so `public/songs/` looks like:
+
+```
+public/songs/
+  songs.json            your manifest (gitignored)
+  01-style.mp3          your audio  (gitignored)
+  01-style.jpg          optional cover art
+  songs.example.json    the committed template
+```
+
+Each entry takes `src` (the only required field), plus optional `title`,
+`artist`, `cover`, `note` — one line of your own about why this song — and
+`lyrics`, as either an array of lines or one string with newlines in it. Blank
+lines are kept as verse breaks. Leave `lyrics` out entirely and the sheet says
+so; the player works fine without it.
+
+**The length sets the schedule**, exactly as it does for the poem. Ten entries
+start unlocking ten days out; four entries start four days out. Ten is the cap.
+Unlike the poem, nothing is held back for the birthday — the tenth song lands on
+the final day of the wait, so on the day itself she has all ten to play rather
+than nine and a promise.
+
+### Things worth knowing if you change it
+
+- **Why it is not in the repo.** These are commercial recordings, and on a free
+  GitHub Pages plan the repo serving this page has to be public. The manifest
+  is gitignored along with the audio because it carries the lyrics.
+- **It is still a public URL.** Gitignoring keeps the files out of your *repo*,
+  not out of your *deployment* — anyone with the link can download the audio
+  straight from the site, exactly as they can already read the poem in the
+  bundle. The whole manifest is fetched up front too, so the titles and lyrics
+  of days she has not reached yet are readable in devtools: locked days are a
+  closed door on the page, not a locked one. Same rule as everywhere else here —
+  treat the page as public.
+- **Which means CI cannot deploy it.** The GitHub Actions workflow builds from
+  the repo, and the audio is not in the repo, so a Pages deploy simply has no
+  music — the tab does not appear and nothing breaks. To ship the songs, build
+  locally and upload `dist/` yourself: drag it onto Netlify Drop, or use
+  Cloudflare Pages' direct upload. Both keep the never-sleeps property that
+  makes static hosting the right choice here.
+- **A missing manifest is a normal state, not an error.** No `songs.json` means
+  no songs, no tab, no console noise. That is what every build without the
+  audio looks like, including every CI build.
+- **The `<audio>` element lives in `App`, not in the player.** The view unmounts
+  every time she goes back to the garden, and an `<audio>` that unmounts stops
+  playing. Hoisting it is what lets the song carry on underneath the countdown,
+  which is the whole reason the player is a tab rather than a modal.
+- **The playhead is deliberately not lifted with it.** It moves several times a
+  second; `App` already re-renders the whole page once a second for the clock,
+  and putting a 4Hz timer up there would drag the hedge, the drapes and every
+  butterfly back into a per-frame render — the exact thing the memoisation
+  elsewhere exists to undo. `MusicRoom` subscribes to the element itself.
+- **The tab is a URL fragment** (`#/music`), not a path. There is no server on a
+  static host to rewrite `/music` back to `index.html`, so a real route would
+  404 on refresh. The fragment survives reload and makes the back button work.
+- **The disc spins only while sound is actually being produced**, so it is the
+  honest answer to "is this playing?" — which matters when the answer is "yes,
+  but muted". It animates `transform` only, so it composites instead of
+  repainting; the petal canvas behind it is already redrawing at 30fps.
+- **The lyric sheet is capped in `vh`, not per cent.** The stage is a grid whose
+  single row is auto-sized, so a percentage `max-height` resolves against the
+  sheet's own content and constrains nothing — a long song ran off the bottom of
+  the page and under the hedge. This is the same class of bug as the
+  `.vines__hedge` width note further down.
+- **Mute state is never remembered.** The song she was on is, in
+  `localStorage`; whether the page may make noise has to be a fresh decision
+  every visit, or the courtesy is only a courtesy once.
+
+## Rehearsing the big day
+
+The payoff - the butterflies lifting off, the confetti, the closing line - runs
+exactly once, unattended, at midnight, and there is no second attempt if
+something about it is wrong. So the clock is movable. Add `?at=` to the URL:
+
+| URL                                          | Where it puts you                       |
+| -------------------------------------------- | --------------------------------------- |
+| `?at=2026-09-26T23:59:50+05:30`              | ten seconds out - watch the handoff     |
+| `?at=2026-09-27T00:00:05+05:30`              | the celebration screen, just after      |
+| `?at=2026-09-28T00:00:01+05:30`              | the window closing behind it            |
+| `?at=2026-09-28T09:00:00+05:30`              | the morning after                       |
+| `?at=+22d`                                   | relative, and quicker to type           |
+| `?at=-1d12h`                                 | compound, and backwards                 |
+| `?at=2026-09-22T19:00:00+05:30#/music`       | the player, six of ten songs in         |
+
+It offsets the clock rather than freezing it, so time still runs from wherever
+you land - you can sit ten seconds before midnight and watch the transition
+happen at its real speed instead of comparing two static screenshots either
+side of it.
+
+- **Keep the `+05:30`.** A bare `?at=2026-09-27` is read as UTC midnight, which
+  is 5:30am in India - the wrong side of the very handoff you were checking. It
+  warns in the console if you leave the time off.
+- **A relative offset needs its sign**: `+22d`, not `22d`. That is what keeps
+  `2026` from ever being ambiguous between a year and a number of seconds.
+- **A badge sits at the top of the screen whenever the clock has been moved**,
+  showing the simulated time, and the console says so too. A preview looks
+  exactly like the real page, and the one mistake that would actually cost
+  something is reassuring yourself with a screenshot of a clock that was never
+  real.
+- **It works on the deployed build, on purpose** - which is the only place the
+  fonts, the timezone handling and the build-time config are all the ones she
+  will get. Nothing is protected by leaving it out of production: `VITE_*`
+  values are inlined into the bundle, so the poem is readable in the shipped
+  JavaScript either way.
+- **The seal is remembered separately**, in `localStorage`, so a preview lands
+  straight on the countdown once you have been through it. Clear site data if
+  you want to rehearse the envelope again.
+- **A background tab holds still.** The clock deliberately stops while
+  `document.hidden`, so previewing in an unfocused tab looks frozen - it
+  resyncs when you come back to it.
 
 ## Putting it online (free, and it stays up)
 
@@ -232,6 +365,9 @@ src/config.js         reads .env, with defaults for everything
 src/App.jsx           picks between the waiting screen and the celebration
 src/hooks/
   useCountdown.js     the one ticking clock (useNow) + pure derivations
+  useSongs.js         fetches the song manifest, absent by default
+  useJukebox.js       the one <audio> element and its controls
+  useHashView.js      which tab is showing, kept in the fragment
   useCelebrationConfig.js   fetches the server config, falls back to bundled
   useReducedMotion.js
   useReadLines.js     which lines she has already opened
@@ -247,7 +383,11 @@ src/components/
   Celebration.jsx     confetti + the birthday message
   ButterflyFlight.jsx one butterfly per unlocked line, landed on the plant
   PoemSheet.jsx       the whole poem so far, over the page
+  MusicRoom.jsx       the disc, the transport row and the lyric sheet
 src/lib/secret.js     hashing and comparison for the passphrase
+src/lib/timeTravel.js the ?at= preview clock
+src/lib/songs.js      the ten-for-ten schedule and manifest parsing
+public/songs/         the audio and songs.json (both gitignored)
 src/lib/poem.js       the poem, and which of it she has earned yet
 scripts/make-key.mjs  npm run key -- "phrase"
 src/styles/global.css
@@ -264,7 +404,9 @@ A few decisions worth knowing about:
   long as the page sat in the background. The clock holds still while
   `document.hidden` and resyncs on the way back.
 - **After the day passes** the target rolls forward a year, so the page keeps
-  counting instead of sitting at zero.
+  counting instead of sitting at zero. The poem is exempt: it is anchored to
+  the original date and stays fully unlocked, so the rollover cannot take back
+  what she already collected.
 - **SVG transforms.** Anything animated by CSS keeps its positioning
   `translate` on a parent group — a CSS `transform` would otherwise clobber the
   SVG `transform` attribute and stack the flowers in the corner.
@@ -306,5 +448,5 @@ A few decisions worth knowing about:
 
 - A photo to go with each line of the poem
 - A guestbook other friends can sign (the Express side is already there)
-- Music that fades in on the day
+- Cover art for the ten songs, so the disc has a face
 - A shareable link with the name baked into the URL

@@ -27,3 +27,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Ten for ten. The audio is commercial recordings and the manifest carries her
+# lyrics - neither belongs in a repo that has to be public for Pages to serve
+# it. songs.example.json is the committed template.
+public/songs/*
+!public/songs/songs.example.json

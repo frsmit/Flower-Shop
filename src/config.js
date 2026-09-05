@@ -61,7 +61,22 @@ export const defaultConfig = {
   subGreeting: 'and it opens on the twenty-seventh of September',
 
   // Shown once the timer hits zero.
-  birthdayTitle: 'Happy Birthday',
+  birthdayTitle: pick(env.VITE_BIRTHDAY_TITLE, 'Happy Birthday'),
+
+  /**
+   * Her age, and the first thing on the birthday page: it stands there alone
+   * for a moment and then burns away into embers before the greeting arrives.
+   *
+   * Unset is a normal state, not a missing one - plenty of people would rather
+   * their age were not the largest thing on the screen. Left blank the page
+   * simply opens on the greeting, exactly as it did before, and nothing about
+   * the scroll below it changes.
+   *
+   * Kept as a string on purpose. It is drawn, not counted with, and this way
+   * a value that isn't a number can't quietly become NaN in the middle of the
+   * one screen nobody is going to be watching when it renders.
+   */
+  birthdayAge: pick(env.VITE_BIRTHDAY_AGE, null),
   birthdayMessage: pick(
     env.VITE_BIRTHDAY_MESSAGE,
     'You made another trip around the sun look effortless. Here is to a year that smells like fresh flowers.',

@@ -5,7 +5,7 @@ import useReducedMotion from '../hooks/useReducedMotion.js';
 
 const PETAL_COLORS = ['#f4a0bb', '#e6a2dd', '#f9d38a', '#fbc9d8', '#a9c79c', '#fff3d6'];
 
-export default function Celebration({ name, title, message, onReadPoem }) {
+export default function Celebration({ name, title, message, onReadPoem, onOpenMusic }) {
   const reduced = useReducedMotion();
   const timers = useRef([]);
 
@@ -112,6 +112,23 @@ export default function Celebration({ name, title, message, onReadPoem }) {
           whileTap={{ scale: 0.97 }}
         >
           <span aria-hidden="true">🦋</span> read the whole poem
+        </motion.button>
+      ) : null}
+
+      {/* Her birthday is the worst possible day to lose the way back to the
+          music, and this screen replaces the one the pill normally sits on. */}
+      {onOpenMusic ? (
+        <motion.button
+          type="button"
+          className="celebration__poem"
+          onClick={onOpenMusic}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.4, duration: 0.8 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.97 }}
+        >
+          <span aria-hidden="true">💿</span> all ten songs
         </motion.button>
       ) : null}
     </motion.section>

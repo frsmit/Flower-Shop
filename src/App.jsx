@@ -5,11 +5,12 @@ import Countdown from './components/Countdown.jsx';
 import BloomProgress from './components/BloomProgress.jsx';
 import Whispers from './components/Whispers.jsx';
 import Bougainvillea from './components/Bougainvillea.jsx';
-import Celebration from './components/Celebration.jsx';
+import BirthdayScroll from './components/BirthdayScroll.jsx';
 import Gate from './components/Gate.jsx';
 import LetterOpening from './components/LetterOpening.jsx';
 import ButterflyFlight from './components/ButterflyFlight.jsx';
 import PoemSheet from './components/PoemSheet.jsx';
+import MusicRoom from './components/MusicRoom.jsx';
 import {
   HOUR,
   getCountdownParts,
@@ -20,6 +21,11 @@ import useCelebrationConfig from './hooks/useCelebrationConfig.js';
 import useUnsealed from './hooks/useUnsealed.js';
 import useReadLines from './hooks/useReadLines.js';
 import { dayOfLine, unlockedCount } from './lib/poem.js';
+import { songsUnlocked } from './lib/songs.js';
+import useSongs from './hooks/useSongs.js';
+import useJukebox from './hooks/useJukebox.js';
+import useHashView from './hooks/useHashView.js';
+import { previewing } from './lib/timeTravel.js';
 
 function nextYear(timestamp) {
   const date = new Date(timestamp);
@@ -36,6 +42,13 @@ const DATE_FORMAT = {
 
 // How long a picked line stays up before the whispers resume.
 const LINE_DWELL = 11000;
+
+// Built once at module scope. Only the preview badge uses it, and only when the
+// clock has been moved - but it would otherwise be rebuilt every second.
+const PREVIEW_CLOCK = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'medium',
+});
 
 export default function App() {
   const { config } = useCelebrationConfig();
@@ -72,6 +85,15 @@ export default function App() {
   // Past the window, aim at next year's date so the numbers keep meaning something.
   const target = now < base + windowMs ? base : nextYear(base);
 
+  /**
+   * Whether the poem is hers in full. Anchored to `base` and not to `target`,
+   * because `target` rolls forward a year the moment the celebration window
+   * closes - and a poem scheduled against next year's date counts back to
+   * nothing, which took the whole month's worth of lines away again the morning
+   * after her birthday. Once the day has come, it stays come.
+   */
+  const poemComplete = now >= base;
+
   const { days, hours, minutes, seconds } = getCountdownParts(target, now);
   // Quantised on purpose. The raw value changes every second, which made
   // framer-motion restart the ring's 2.4s animation on every tick for a change
@@ -84,7 +106,26 @@ export default function App() {
   // above can't reach the butterflies. Everything below is memoised on this:
   // re-rendering ~28 SVGs once a second is exactly the mistake the
   // bougainvillea already had to be rescued from.
-  const unlocked = unlockedCount(target, now, poem.length, celebrating);
+  const unlocked = unlockedCount(target, now, poem.length, poemComplete);
+
+  // ---- ten for ten -------------------------------------------------------
+  // The last ten days get a song each, on their own tab. The manifest is
+  // fetched at runtime and is very often simply absent - no manifest means no
+  // music and no tab, which is what every build without the audio looks like.
+  const songs = useSongs();
+  const songsOpen = songsUnlocked(target, now, songs.length, poemComplete);
+  const jukebox = useJukebox(songs.slice(0, songsOpen));
+  // Pulled out rather than read as `jukebox.attach` at the ref site: handing a
+  // member of an object straight to ref={} makes the whole object read as a
+  // ref, both to the linter and to the next person to open this file.
+  const { attach, song: loaded, muted: soundOff, playing: sounding } = jukebox;
+
+  const [view, goView] = useHashView('garden');
+  // Deep-linking to the player before it exists shouldn't strand her on an
+  // empty screen, so the guard lives here rather than in the router.
+  const musicOpen = view === 'music' && phase === 'open' && songsOpen > 0;
+  const openMusic = useCallback(() => goView('music'), [goView]);
+  const closeMusic = useCallback(() => goView('garden'), [goView]);
 
   const { readLines, markRead } = useReadLines();
   const [activeIndex, setActiveIndex] = useState(null);
@@ -131,11 +172,28 @@ export default function App() {
   );
 
   return (
-    <div className={`app ${celebrating ? 'app--celebrating' : ''}`}>
+    // `app--scroll` is what lets the birthday page be taller than the window.
+    // Every other screen is deliberately capped at one viewport, so the cap
+    // comes off only while the one screen that scrolls is mounted.
+    <div
+      className={['app', celebrating ? 'app--celebrating app--scroll' : ''].filter(Boolean).join(' ')}
+    >
       <div className="app__wash" aria-hidden="true" />
       <div className="app__glow app__glow--one" aria-hidden="true" />
       <div className="app__glow app__glow--two" aria-hidden="true" />
-      <PetalField density={celebrating ? 1.5 : 1} />
+      {/* Outside the stage, so it survives her switching tabs. An <audio>
+          that unmounts stops playing, and the whole reason the player has its
+          own tab is that the song should follow her back to the garden.
+          `muted` is bound to state that starts true every single visit. */}
+      {loaded ? (
+        <audio ref={attach} src={loaded.src} muted={soundOff} preload="metadata" />
+      ) : null}
+
+      {/* Thinner on the day, not thicker. The celebration screen is the one
+          place the petals are not the only thing moving - confetti is firing
+          over the top of them - so this is where the 2D canvas should be
+          asking for least, not most. */}
+      <PetalField density={celebrating ? 0.8 : 1} />
       <Bougainvillea />
 
       {/* Only once she's through the seal - butterflies drifting past the
@@ -159,13 +217,20 @@ export default function App() {
             <Gate key="gate" config={config} onUnsealed={handleUnsealed} />
           ) : phase === 'opening' ? (
             <LetterOpening key="letter" config={config} onDone={handleLetterDone} />
+          ) : musicOpen ? (
+            <MusicRoom
+              key="music"
+              songs={songs}
+              unlocked={songsOpen}
+              jukebox={jukebox}
+              onBack={closeMusic}
+            />
           ) : celebrating ? (
-            <Celebration
+            <BirthdayScroll
               key="celebration"
-              name={config.name}
-              title={config.birthdayTitle}
-              message={config.birthdayMessage}
+              config={config}
               onReadPoem={poem.length ? openSheet : undefined}
+              onOpenMusic={songsOpen > 0 ? openMusic : undefined}
             />
           ) : (
             <motion.section
@@ -217,26 +282,53 @@ export default function App() {
                     }
                   />
 
-                  {/* Before the poem starts unlocking there's nothing to open,
-                      so the date keeps the slot - the row would collapse
-                      lopsidedly against the ring without it. */}
-                  {unlocked > 0 ? (
-                    <button type="button" className="poem-open" onClick={openSheet}>
-                      <span aria-hidden="true">🦋</span>
-                      read the poem so far
-                      {unread > 0 ? <span className="poem-open__count">{unread} new</span> : null}
-                    </button>
-                  ) : (
-                    <p className="waiting__date">
-                      <span aria-hidden="true">🌸</span> {prettyDate}
-                    </p>
-                  )}
+                  {/* A row and not a column: the music pill only exists for the
+                      last ten days, and stacking it would change the height of
+                      a layout that was measured against short screens. */}
+                  <div className="waiting__links">
+                    {/* Before the poem starts unlocking there's nothing to open,
+                        so the date keeps the slot - the row would collapse
+                        lopsidedly against the ring without it. */}
+                    {unlocked > 0 ? (
+                      <button type="button" className="poem-open" onClick={openSheet}>
+                        <span aria-hidden="true">🦋</span>
+                        read the poem so far
+                        {unread > 0 ? <span className="poem-open__count">{unread} new</span> : null}
+                      </button>
+                    ) : (
+                      <p className="waiting__date">
+                        <span aria-hidden="true">🌸</span> {prettyDate}
+                      </p>
+                    )}
+
+                    {songsOpen > 0 ? (
+                      <button type="button" className="poem-open" onClick={openMusic}>
+                        <span aria-hidden="true">💿</span>
+                        ten for ten
+                        {sounding && !soundOff ? (
+                          <span className="poem-open__count">playing</span>
+                        ) : null}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </motion.section>
           )}
         </AnimatePresence>
       </main>
+
+      {/* Loud on purpose. A preview looks exactly like the real page, and the
+          one mistake that would really cost something here is reassuring
+          yourself with a screenshot of a clock that was never real. */}
+      {previewing ? (
+        <p className="preview" role="status">
+          <span aria-hidden="true">⏱</span> preview ·{' '}
+          <time dateTime={new Date(now).toISOString()}>
+            {PREVIEW_CLOCK.format(new Date(now))}
+          </time>
+        </p>
+      ) : null}
 
       <AnimatePresence>
         {sheetOpen ? (

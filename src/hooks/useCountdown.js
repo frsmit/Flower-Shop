@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { now as readClock } from '../lib/timeTravel.js';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -13,9 +14,13 @@ export { SECOND, MINUTE, HOUR, DAY };
  *
  * It re-reads the clock on every tick rather than counting down internally, so
  * a sleeping laptop or a throttled background tab can't make it drift.
+ *
+ * `readClock` is `Date.now()` plus the `?at=` preview offset, so moving the
+ * clock moves the whole app - every derivation below is downstream of this one
+ * reading, and none of them has to know that a preview is happening.
  */
 export function useNow() {
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => readClock());
   const timer = useRef(0);
 
   useEffect(() => {
@@ -27,13 +32,13 @@ export function useNow() {
       // animations never finish and their nodes would pile up for as long as
       // the page sits in a background tab. Nobody is watching, so hold still
       // and resync on the way back in.
-      if (!document.hidden) setNow(Date.now());
+      if (!document.hidden) setNow(readClock());
       // Re-align to the next whole second so the digits flip on the beat.
-      timer.current = window.setTimeout(tick, SECOND - (Date.now() % SECOND));
+      timer.current = window.setTimeout(tick, SECOND - (readClock() % SECOND));
     };
 
     tick();
-    const onVisible = () => !document.hidden && setNow(Date.now());
+    const onVisible = () => !document.hidden && setNow(readClock());
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {

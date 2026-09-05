@@ -49,10 +49,21 @@ export function parsePoem(raw, fallback = []) {
  * slot has to come up empty. It is the first one, on purpose: a quiet day at the
  * very start, before she has even been sent the link, costs nothing, whereas the
  * last day before her birthday is the worst possible one to have nothing arrive.
+ *
+ * `complete` short-circuits the schedule and hands over the whole poem. It is
+ * true from the moment the birthday arrives, and it never goes back to false -
+ * which matters more than it looks. Past the celebration window the caller aims
+ * `target` at next year's date so the digits keep meaning something, and this
+ * function would then see ~364 days left and count all the way back to zero:
+ * every line she spent a month collecting would stop being readable the morning
+ * after, the one day she is most likely to come back and reread it. So once the
+ * poem has been earned it stays earned. The trade is that a visitor in some
+ * later year finds it already whole instead of watching it drip a second time,
+ * which is the cheaper of the two losses by a long way.
  */
-export function unlockedCount(target, now, total, celebrating = false) {
+export function unlockedCount(target, now, total, complete = false) {
   if (!total || total < 1) return 0;
-  if (celebrating) return total;
+  if (complete) return total;
 
   // Whole days still to go. 27.4 days left is still 'day 28 of the wait', so ceil.
   const daysLeft = Math.ceil((target - now) / DAY);

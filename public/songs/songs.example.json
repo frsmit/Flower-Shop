@@ -1,0 +1,42 @@
+{
+  "//": [
+    "Ten for ten - one song per day for the last ten days of the wait.",
+    "",
+    "Copy this file to songs.json in the same folder and fill it in. Both",
+    "songs.json and the audio files are gitignored: they are commercial",
+    "recordings, and on a free GitHub Pages plan the repo serving this page has",
+    "to be public. Keep them out of the repo.",
+    "",
+    "The LENGTH sets the schedule, exactly as it does for the poem. Ten entries",
+    "start unlocking ten days out; four entries start four days out. The last",
+    "one lands on the final day of the wait, so all of them are hers on the",
+    "birthday itself. Ten is the maximum.",
+    "",
+    "  src     required, relative to this folder's parent (so 'songs/x.mp3')",
+    "  title   shown under the disc",
+    "  artist  optional, shown in script under the title",
+    "  cover   optional square image; without one the disc gets a plain blush face",
+    "  note    optional one line of your own - why this song, for her",
+    "  lyrics  optional; an array of lines, or one string with newlines in it.",
+    "          Blank lines are kept as verse breaks. Leave it out and the sheet",
+    "          says so instead - the player does not need it to work."
+  ],
+  "songs": [
+    {
+      "src": "songs/01-style.mp3",
+      "title": "Style",
+      "artist": "Taylor Swift",
+      "cover": "songs/01-style.jpg",
+      "note": "day one, and it had to be this one",
+      "lyrics": []
+    },
+    {
+      "src": "songs/02-tumblr-girls.mp3",
+      "title": "Tumblr Girls",
+      "artist": "G-Eazy",
+      "cover": null,
+      "note": "",
+      "lyrics": []
+    }
+  ]
+}

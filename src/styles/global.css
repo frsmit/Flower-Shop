@@ -62,6 +62,8 @@ body {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -126,6 +128,7 @@ body {
 
 .stage {
   flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
   padding: clamp(1.2rem, 3.5vh, 2.4rem) clamp(1.1rem, 5vw, 4rem) clamp(7rem, 16vh, 10rem);
@@ -484,6 +487,204 @@ body {
 .celebration__again:focus-visible {
   outline: 2px solid var(--rose);
   outline-offset: 4px;
+}
+
+/* ---------- the birthday page ---------------------------------------- */
+
+/* The one screen that is taller than the window. Every other view is capped at
+   a viewport on purpose, so the cap comes off only while this is mounted -
+   see the `app--scroll` class in App.jsx. */
+.app--scroll {
+  max-height: none;
+  overflow: visible;
+}
+
+/* The stage stops centring and stops padding: each section below does both for
+   itself, because they are no longer all the same height. */
+.app--scroll .stage {
+  display: block;
+  padding: 0;
+}
+
+.birthday {
+  width: 100%;
+}
+
+.birthday__section {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  /* The bottom value clears the fixed hedge, which is why it is so much larger
+     than the top one - it is the same padding the single-screen stage used. */
+  padding: clamp(1.2rem, 3.5vh, 2.4rem) clamp(1.1rem, 5vw, 4rem) clamp(7rem, 16vh, 10rem);
+  text-align: center;
+}
+
+.birthday__cue {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(7.5rem, 17vh, 10.5rem);
+  font-family: var(--font-ui);
+  font-size: clamp(0.58rem, 1.4vw, 0.7rem);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  /* Composited transform only, on exactly one element. */
+  animation: cue-bob 2.4s ease-in-out infinite;
+}
+
+.birthday__cue::after {
+  content: '';
+  display: block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin: 0.5rem auto 0;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+}
+
+@keyframes cue-bob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 6px);
+  }
+}
+
+/* ---------- the age, burning ----------------------------------------- */
+
+.ageburn {
+  display: block;
+  width: min(100%, 44rem);
+  height: min(58vh, 26rem);
+}
+
+/* ---------- the flower bed ------------------------------------------- */
+
+.bloom-bed {
+  width: min(100%, 66rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.6rem, 2vh, 1.4rem);
+}
+
+.bloom-bed__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1000 / 300;
+  /* Petals overshoot their own scale on the way open and would otherwise be
+     clipped at the top of the bed. */
+  overflow: visible;
+}
+
+/* Closed is the resting state, so a bed that is never scrolled to never opens
+   and never animates. Everything below only runs under `.is-open`. */
+.bloom__stem {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.bloom__leaf,
+.bloom__petal,
+.bloom__eye {
+  /* fill-box so a petal scales out of the flower's centre - which is where its
+     own bounding box bottom sits, by construction in flowers.js - rather than
+     out of its middle or out of the viewBox origin. */
+  transform-box: fill-box;
+  transform: scale(0);
+}
+
+.bloom__leaf,
+.bloom__petal {
+  transform-origin: bottom center;
+}
+
+.bloom__eye {
+  transform-origin: center;
+}
+
+.bloom-bed.is-open .bloom__stem {
+  animation: stem-draw 0.95s ease-out var(--bloom-delay) forwards;
+}
+
+.bloom-bed.is-open .bloom__leaf {
+  animation: bloom-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)
+    calc(var(--bloom-delay) + 0.55s + var(--leaf-index) * 0.1s) forwards;
+}
+
+/* The running petal index is set per petal in FlowerBloom, counting across all
+   of a flower's rings - so an outer ring is open before an inner one starts and
+   a rose builds from the outside in. */
+.bloom-bed.is-open .bloom__petal {
+  animation: bloom-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1)
+    calc(var(--bloom-delay) + 0.8s + var(--petal-index) * 0.045s) forwards;
+}
+
+.bloom-bed.is-open .bloom__eye {
+  animation: bloom-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+    calc(var(--bloom-delay) + 0.9s + var(--petal-index) * 0.045s) forwards;
+}
+
+@keyframes stem-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes bloom-pop {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.bloom-bed__line {
+  margin: 0;
+  font-family: var(--font-script);
+  font-size: clamp(2rem, 7vw, 4rem);
+  line-height: 1.1;
+  color: var(--rose-deep);
+  text-shadow: 0 12px 34px rgba(196, 106, 138, 0.24);
+  opacity: 0;
+}
+
+/* Last, after the bed has finished coming up. */
+.bloom-bed.is-open .bloom-bed__line {
+  animation: fade-up 1.2s ease-out 4.6s forwards;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Asked for less movement: the bed is simply already open. Set on the element
+   by the component as well, so this holds even where the media query does not
+   reach - the two agree rather than one overriding the other. */
+.bloom-bed.is-instant .bloom__stem,
+.bloom-bed.is-instant .bloom__leaf,
+.bloom-bed.is-instant .bloom__petal,
+.bloom-bed.is-instant .bloom__eye,
+.bloom-bed.is-instant .bloom-bed__line {
+  animation: none !important;
+  stroke-dashoffset: 0;
+  transform: scale(1);
+  opacity: 1;
 }
 
 /* ---------- garden band ---------------------------------------------- */
@@ -1464,5 +1665,576 @@ body {
 
   .butterfly__pip {
     opacity: 1;
+  }
+
+  /* The bed is already up, and the scroll cue holds still. */
+  .bloom__stem {
+    stroke-dashoffset: 0 !important;
+  }
+
+  .bloom__leaf,
+  .bloom__petal,
+  .bloom__eye {
+    transform: scale(1) !important;
+  }
+
+  .bloom-bed__line {
+    opacity: 1;
+  }
+
+  .bloom-bed .bloom__stem,
+  .bloom-bed .bloom__leaf,
+  .bloom-bed .bloom__petal,
+  .bloom-bed .bloom__eye,
+  .bloom-bed .bloom-bed__line,
+  .birthday__cue {
+    animation: none !important;
+  }
+}
+
+/* ---------- the preview badge ----------------------------------------- */
+
+/* Only ever on screen when ?at= has moved the clock. Deliberately not pretty:
+   it is a warning that the page you are looking at is a rehearsal, and it has
+   to survive being glanced past. Fixed to the top so it lands in a screenshot
+   of the celebration screen, which is the one that most needs the caveat. */
+.preview {
+  position: fixed;
+  top: 0.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  margin: 0;
+  padding: 0.34rem 0.8rem;
+  border: 1px solid rgba(107, 67, 88, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 252, 250, 0.86);
+  box-shadow: var(--shadow-soft);
+  color: var(--plum);
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.preview time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  text-transform: none;
+}
+
+/* ---------- ten for ten ----------------------------------------------- */
+
+/* Screen-reader-only. The day strip is a row of bare numbers, which tells a
+   sighted visitor everything and a screen reader nothing at all. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A row, not a column. The music pill only exists for the last ten days, and
+   stacking it would change the height of a layout that was measured against
+   390x844, 360x640 and 740x360 without scrolling. */
+.waiting__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 0.6rem;
+}
+
+/* The player owns the whole stage. `min-height: 0` on the column and on the
+   lyric block is what lets the sheet scroll inside itself instead of pushing
+   the disc off the top - the page itself must never scroll, or the
+   bougainvillea slides away from the frame it is pinned to. */
+.music {
+  width: min(100%, 44rem);
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Centred here rather than by the grid: the box now fills the row, so the
+     grid has nothing left to centre. */
+  justify-content: center;
+  gap: clamp(0.7rem, 2vh, 1.15rem);
+}
+
+.music__head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.music__back {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  cursor: pointer;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+
+.music__back:hover {
+  color: var(--rose-deep);
+  transform: translateX(-2px);
+}
+
+.music__eyebrow {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+}
+
+.music__count {
+  justify-self: end;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The ten days. Locked ones stay visible - the shape of what is still to come
+   is half of what makes a countdown a countdown. */
+.discs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.discs__day {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, 0.66);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--plum);
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.discs__day:hover:not(:disabled) {
+  transform: translateY(-2px);
+  color: var(--rose-deep);
+}
+
+.discs__day:disabled {
+  cursor: default;
+  opacity: 0.42;
+  background: rgba(255, 255, 255, 0.34);
+  border-style: dashed;
+}
+
+.discs__day--on {
+  background: var(--rose);
+  border-color: var(--rose-deep);
+  color: #fff;
+  box-shadow: 0 8px 20px -10px rgba(160, 92, 120, 0.8);
+}
+
+.discs__day:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 3px;
+}
+
+/* ---------- the deck -------------------------------------------------- */
+
+.deck {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.55rem, 1.6vh, 0.9rem);
+}
+
+/* Transform-only rotation, so it composites instead of repainting. The petal
+   canvas behind is already redrawing at 30fps; a disc that triggered paint
+   every frame would be competing with it for the same thread. */
+.disc {
+  position: relative;
+  width: clamp(8rem, 22vh, 12rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.34) 0 2px,
+      rgba(150, 84, 110, 0.055) 2px 5px
+    ),
+    radial-gradient(circle at 32% 28%, #fffdfc 0%, #e9d7de 46%, #c9a5b4 100%);
+  box-shadow: var(--shadow-tile), inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  animation: disc-spin 3.6s linear infinite;
+  animation-play-state: paused;
+}
+
+.disc--spinning {
+  animation-play-state: running;
+}
+
+.disc--still {
+  animation: none;
+}
+
+@keyframes disc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.disc__art {
+  position: absolute;
+  inset: 17%;
+  width: 66%;
+  height: 66%;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.disc__art--blank {
+  background: radial-gradient(circle at 34% 30%, var(--blush), var(--rose) 78%);
+}
+
+/* The rainbow a CD throws when you tilt it. Kept faint - at full strength it
+   reads as a bug rather than as light. */
+.disc__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 210deg,
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(226, 196, 234, 0.5) 40deg,
+    rgba(255, 255, 255, 0) 90deg,
+    rgba(232, 184, 120, 0.42) 165deg,
+    rgba(255, 255, 255, 0) 220deg,
+    rgba(157, 189, 147, 0.36) 290deg,
+    rgba(255, 255, 255, 0) 340deg
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.disc__hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 13%;
+  height: 13%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--cream);
+  box-shadow:
+    0 0 0 1px rgba(150, 84, 110, 0.3),
+    inset 0 1px 3px rgba(150, 84, 110, 0.35);
+}
+
+.deck__meta {
+  text-align: center;
+}
+
+.deck__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 4vw, 1.9rem);
+  font-weight: 400;
+  color: var(--plum);
+  line-height: 1.15;
+}
+
+.deck__artist {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-script);
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: var(--rose-deep);
+}
+
+.deck__note {
+  margin: 0.3rem 0 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.92rem;
+  color: var(--plum-soft);
+}
+
+.deck__scrub {
+  width: min(100%, 26rem);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.deck__time {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--plum-soft);
+  min-width: 2.4em;
+  text-align: center;
+}
+
+.deck__range {
+  flex: 1;
+  height: 1.1rem;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.deck__range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(199, 150, 172, 0.42);
+}
+
+.deck__range::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(199, 150, 172, 0.42);
+}
+
+.deck__range::-webkit-slider-thumb {
+  appearance: none;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-top: -0.28rem;
+  border-radius: 50%;
+  background: var(--rose-deep);
+  box-shadow: 0 2px 6px -1px rgba(150, 84, 110, 0.7);
+}
+
+.deck__range::-moz-range-thumb {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--rose-deep);
+}
+
+.deck__range:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.deck__range:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+.deck__transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.deck__key {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-soft);
+  font-size: 0.7rem;
+  color: var(--plum);
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.deck__key--main {
+  width: 3.1rem;
+  height: 3.1rem;
+  font-size: 0.95rem;
+  color: var(--rose-deep);
+}
+
+.deck__key:hover:not(:disabled) {
+  transform: translateY(-2px);
+  color: var(--rose-deep);
+}
+
+.deck__key:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.deck__key:focus-visible,
+.deck__mute:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 3px;
+}
+
+/* The control that turns silence into sound, so it is allowed to look like the
+   important one. It is also the user gesture that earns the right to make any
+   sound at all, which is why it says what it does rather than just being an
+   icon. */
+.deck__mute {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: 0.3rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--rose-deep);
+  background: var(--rose);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.deck__mute:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.deck__mute--off {
+  border-color: var(--glass-line);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--plum-soft);
+}
+
+.deck__mute:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.deck__blocked {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rose-deep);
+}
+
+/* ---------- the lyric sheet ------------------------------------------- */
+
+.lyrics {
+  width: min(100%, 32rem);
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+}
+
+/* Takes whatever the deck above it leaves, and scrolls the rest. The vh cap
+   keeps it from swallowing a tall desktop window on a short song. */
+.lyrics__sheet {
+  width: 100%;
+  max-height: min(100%, 34vh);
+  overflow-y: auto;
+  padding: 0.9rem 1.1rem;
+  border-radius: 1.1rem;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: var(--shadow-soft);
+  text-align: center;
+  scrollbar-width: thin;
+}
+
+.lyrics__sheet:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 3px;
+}
+
+.lyrics__line {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(0.92rem, 2.4vw, 1.06rem);
+  line-height: 1.75;
+  color: var(--plum);
+}
+
+/* A verse break, kept as space. Collapsing the blank lines turns a song into
+   a paragraph. */
+.lyrics__break {
+  display: block;
+  height: 0.85em;
+}
+
+.lyrics__empty {
+  margin: 0;
+  align-self: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--plum-soft);
+}
+
+/* Short screens: the disc is the first thing that can afford to give up room,
+   and the lyric sheet is the thing worth keeping. */
+@media (max-height: 640px) {
+  .disc {
+    width: clamp(6rem, 17vh, 8.5rem);
+  }
+
+  .music__eyebrow {
+    letter-spacing: 0.18em;
+  }
+
+  .deck__key {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .deck__key--main {
+    width: 2.7rem;
+    height: 2.7rem;
+  }
+
+  .lyrics__sheet {
+    max-height: min(100%, 26vh);
+  }
+}
+
+/* The disc is the one thing here that would otherwise turn forever. */
+@media (prefers-reduced-motion: reduce) {
+  .disc {
+    animation: none !important;
   }
 }
