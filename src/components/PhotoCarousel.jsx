@@ -149,11 +149,16 @@ function PhotoCarousel({ photos }) {
               aria-hidden={i === index ? undefined : 'true'}
             >
               {i <= reach ? (
+                // No loading="lazy" on purpose: `reach` above IS the
+                // loading strategy, and the two work against each other.
+                // Lazy defers until the image intersects the viewport, which
+                // for a slide parked outside the frame's clip means it starts
+                // downloading at the moment it slides in - the exact stall
+                // `reach` exists to get ahead of.
                 <img
                   className="reel__img"
                   src={photo.src}
                   alt={photo.alt}
-                  loading={i === 0 ? 'eager' : 'lazy'}
                   decoding="async"
                   draggable="false"
                 />

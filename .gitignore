@@ -38,3 +38,7 @@ public/songs/*
 # repo has to be public. photos.example.json is the committed template.
 public/photos/*
 !public/photos/photos.example.json
+
+# Design references dropped in for Claude to look at. Large, and not something
+# a public repo needs to carry.
+Reference Video/

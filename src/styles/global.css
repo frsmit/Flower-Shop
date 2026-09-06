@@ -522,10 +522,25 @@ body {
   text-align: center;
 }
 
+/* In flow, not absolutely positioned. Pinned to the bottom it had no idea how
+   tall the greeting above it was, and the third button - "all ten songs",
+   which only exists once the songs have all unlocked, i.e. on the day itself -
+   ran 23px into it. A second grid row cannot overlap the first whatever the
+   greeting does. The row collapses to nothing while the age is still burning,
+   since the cue is not rendered then, so the greeting stays centred. */
+.birthday__section--open {
+  /* minmax(min-content, 1fr), not 1fr. A plain 1fr is capped at the space
+     that is left, and the greeting is taller than that on a 770px window
+     once the third button exists - so it overflowed its own row and landed
+     back on top of the cue, which is the bug this was supposed to fix. The
+     min-content floor lets the row grow and the section grow with it. On a
+     tall window nothing has to grow, 1fr wins, and the cue sits at the
+     bottom edge where it was designed to sit. */
+  grid-template-rows: minmax(min-content, 1fr) auto;
+  row-gap: clamp(0.6rem, 2vh, 1.2rem);
+}
+
 .birthday__cue {
-  position: absolute;
-  left: 50%;
-  bottom: clamp(7.5rem, 17vh, 10.5rem);
   font-family: var(--font-ui);
   font-size: clamp(0.58rem, 1.4vw, 0.7rem);
   letter-spacing: 0.3em;
@@ -549,10 +564,10 @@ body {
 @keyframes cue-bob {
   0%,
   100% {
-    transform: translate(-50%, 0);
+    transform: translate(0, 0);
   }
   50% {
-    transform: translate(-50%, 6px);
+    transform: translate(0, 6px);
   }
 }
 
@@ -2253,9 +2268,17 @@ body {
    the frame is the same size on every slide and the caption below it never
    moves - a frame that resized to each photograph would make the whole page
    jump on every advance. */
+/* The width is capped by the viewport's HEIGHT as well as its width, which is
+   the only reason this fits. aspect-ratio derives height from width, so a
+   frame sized purely on width has no idea the section it sits in is capped at
+   100vh: at 736px wide it wanted 552px of picture plus a caption, a button row
+   and the 123px of bottom padding that clears the fixed hedge - 805px of
+   content in a 770px window, with the top of every photograph cut off above
+   the fold. Feeding the height cap back through the ratio keeps it 4:3 and
+   keeps it on screen. Same class of bug as the lyric sheet's vh cap. */
 .reel__frame {
   position: relative;
-  width: 100%;
+  width: min(100%, calc(52vh * 4 / 3));
   aspect-ratio: 4 / 3;
   overflow: hidden;
   border-radius: 1.1rem;
@@ -2279,24 +2302,41 @@ body {
   flex: 0 0 100%;
   height: 100%;
   margin: 0;
-  display: grid;
-  place-items: center;
+  /* The positioning context for the image below, which is the whole reason
+     this is here rather than a grid with centred items. */
+  position: relative;
 }
 
 /* `contain` and not `cover`, deliberately. These are her photographs and they
    are not all the same shape - cover would crop a portrait to a 4:3 window,
    which on pictures of people means cutting off heads. Letterboxing against
-   the blush frame is the lesser loss. */
+   the blush frame is the lesser loss.
+   
+   Absolutely positioned, which is load-bearing and not tidiness. The frame's
+   height comes from `aspect-ratio`, and a percentage height does not resolve
+   against a ratio-derived one: `height: 100%` down the chain frame -> track ->
+   slide -> img fell back to `auto` at the last step, so the image took its
+   height from its own proportions instead. A portrait then rendered a full
+   frame wide and 800px tall inside a 400px window and was cut off at the
+   bottom - the exact head-cropping this rule exists to prevent, arriving by a
+   different route. `inset: 0` takes the box from the positioned ancestor's
+   padding box, which is definite, so there is no percentage to resolve. */
 .reel__img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
   user-select: none;
 }
 
+/* Two lines are reserved whether or not they are used. The frame above is a
+   fixed aspect-ratio so it never moves, but a caption that wraps onto a second
+   line would still push the arrows down by a line on that slide and pull them
+   back up on the next - the same jump, one element lower. */
 .reel__caption {
   margin: 0;
-  min-height: 1.4em;
+  min-height: 2.8em;
   font-family: var(--font-body);
   font-size: clamp(0.85rem, 2vw, 1rem);
   font-style: italic;
@@ -2359,6 +2399,8 @@ body {
    phone wide: portraits stop being letterboxed down to a stripe. */
 @media (max-width: 560px) {
   .reel__frame {
+    /* Square, so the same cap is just the height. */
+    width: min(100%, 52vh);
     aspect-ratio: 1 / 1;
   }
 }
