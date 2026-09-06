@@ -6,9 +6,11 @@ While you wait, bougainvillea frames the page - drapes hanging from the top two
 corners and a hedge along the bottom - papery bracts drift down the screen, a
 ring fills up as the year runs out, and the seconds roll over one digit at a
 time. Every day of the last month a butterfly arrives carrying one line of a
-poem and settles on the plant, so the garden fills up as the day gets closer. At
-midnight on the 27th they all lift off, the poem finishes, and the whole thing
-turns into a celebration screen with confetti.
+poem and settles on the plant, so the garden fills up as the day gets closer.
+Over the last ten days a song unlocks each day, on its own tab. At midnight on
+the 27th every butterfly lifts off at once, the poem finishes, and the page
+becomes the one screen here that scrolls: her age burning away into embers, the
+greeting and the confetti, and a bed of flowers opening one at a time.
 
 ## Running it
 
@@ -261,10 +263,81 @@ than nine and a promise.
   `localStorage`; whether the page may make noise has to be a fresh decision
   every visit, or the courtesy is only a courtesy once.
 
+## The day itself
+
+Every other screen here is one viewport with `overflow: hidden`, because a
+countdown is a thing you glance at. The day is a thing you go through, so the
+birthday page is the one screen that scrolls, and `App` drops its height cap for
+exactly as long as that page is mounted. The wash, the glows, the petals and the
+plant are all `position: fixed` already, so the whole sequence plays out over
+the same garden she has been watching for a month — which cost nothing to get.
+
+It runs in three beats.
+
+**Her age**, alone on the screen. It stands there long enough to be read, then
+catches light at the feet of the digits and goes up in embers. Set it in
+`VITE_BIRTHDAY_AGE`:
+
+```ini
+VITE_BIRTHDAY_AGE=24
+```
+
+Leave it blank and the beat doesn't happen — the page opens on the greeting,
+exactly as it did before this existed. That is a normal state, not a missing
+one; plenty of people would rather their age weren't the largest thing on the
+screen.
+
+**The greeting**, which is the `Celebration` screen that was already here — the
+title, the message, the confetti, and buttons through to the poem and the songs.
+It didn't need replacing to become the top of a longer page.
+
+**The bed**, six kinds of flower opening one at a time, under
+`{VITE_BIRTHDAY_TITLE}, {VITE_BIRTHDAY_NAME}`. It waits until it is scrolled to.
+
+### Things worth knowing if you change it
+
+- **The number is never a DOM node.** It's drawn once into an offscreen canvas,
+  read back a pixel at a time, and every opaque pixel on the sampling grid
+  becomes a particle — so what burns is the actual shape of the actual glyphs in
+  the actual display face, rather than a rectangle pretending to be a number.
+  That is the whole trick, and it's why this is a canvas and not a very
+  determined piece of CSS. `BASE_STEP` trades directly against particle count: 3
+  is dense and legible, 6 is a sketch.
+- **The embers ignite bottom-up**, because a particle's ignition point is its
+  height in the number. The top is still solid while the feet are already gone,
+  which is what makes it read as burning rather than as dissolving.
+- **It fires once and hands over.** Nothing here loops, which is what lets it
+  afford a few thousand particles on the one screen whose frame budget isn't
+  already committed to something that runs forever.
+- **The age is kept as a string.** It is drawn, not counted with, and this way a
+  value that isn't a number can't quietly become `NaN` in the middle of the one
+  screen nobody will be watching when it renders.
+- **The blooms are CSS animations with computed delays**, not springs and not
+  timers. There are around two hundred petals; handing each to framer-motion
+  would put two hundred spring integrations on the main thread, whereas as CSS
+  they're the compositor's problem and never touch React again. `forwards` holds
+  the last frame and the animation is over — nothing is left running behind the
+  rest of the page, which is the failure the swaying hedge already was.
+- **The bed waits to be looked at.** Started on mount, it would have opened and
+  finished while she was still reading the greeting a screen above it.
+- **Petals carry two transforms that must not fight**: the rotation that puts
+  them round the clock face, on a `transform` *attribute*, and the scale that
+  opens them, as a CSS class on a node inside it. On the same node the CSS
+  overwrites the attribute outright and every petal folds onto the centre — the
+  identical trap the butterflies' wings are wrapped against.
+- **Each petal is drawn from its own base outward**, which puts the bounding
+  box's bottom edge exactly on the flower's centre. That's what lets
+  `transform-origin: bottom center` scale a petal out of the middle of the
+  flower instead of out of its own waist.
+- **The species are radial by construction**, including the ones that aren't
+  radial in life — a tulip is three petals over a narrow arc, a rose is three
+  rings of one petal at falling scales. One code path for all six is what makes
+  a seventh cheap.
+
 ## Rehearsing the big day
 
-The payoff - the butterflies lifting off, the confetti, the closing line - runs
-exactly once, unattended, at midnight, and there is no second attempt if
+The payoff - the butterflies lifting off, the age burning down, the confetti,
+the closing line - runs exactly once, unattended, at midnight, and there is no second attempt if
 something about it is wrong. So the clock is movable. Add `?at=` to the URL:
 
 | URL                                          | Where it puts you                       |
@@ -362,7 +435,7 @@ index.html            fonts + page shell
 server/index.js       Express: /api/celebration, /api/health, serves dist/
 src/config.js         reads .env, with defaults for everything
 .env.example          the template - copy to .env (gitignored)
-src/App.jsx           picks between the waiting screen and the celebration
+src/App.jsx           picks between the waiting screen, the player and the day
 src/hooks/
   useCountdown.js     the one ticking clock (useNow) + pure derivations
   useSongs.js         fetches the song manifest, absent by default
@@ -380,13 +453,17 @@ src/components/
   Bougainvillea.jsx   the whole plant: two corner drapes + the bottom hedge
   Gate.jsx            the wax seal and the passphrase
   LetterOpening.jsx   seal lifts, flap opens, letter rises
+  BirthdayScroll.jsx  the day itself, the one screen that scrolls
+  AgeBurn.jsx         her age, sampled off a canvas and burnt away in embers
   Celebration.jsx     confetti + the birthday message
+  FlowerBloom.jsx     the bed, opening one flower at a time
   ButterflyFlight.jsx one butterfly per unlocked line, landed on the plant
   PoemSheet.jsx       the whole poem so far, over the page
   MusicRoom.jsx       the disc, the transport row and the lyric sheet
 src/lib/secret.js     hashing and comparison for the passphrase
 src/lib/timeTravel.js the ?at= preview clock
 src/lib/songs.js      the ten-for-ten schedule and manifest parsing
+src/lib/flowers.js    six species, and the bed they come up in
 public/songs/         the audio and songs.json (both gitignored)
 src/lib/poem.js       the poem, and which of it she has earned yet
 scripts/make-key.mjs  npm run key -- "phrase"
