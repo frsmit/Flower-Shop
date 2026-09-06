@@ -2238,3 +2238,137 @@ body {
     animation: none !important;
   }
 }
+
+/* ---------- the photographs ------------------------------------------ */
+
+.reel {
+  width: min(100%, 46rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.5rem, 1.6vh, 1rem);
+}
+
+/* The window the track slides behind. `aspect-ratio` rather than a height, so
+   the frame is the same size on every slide and the caption below it never
+   moves - a frame that resized to each photograph would make the whole page
+   jump on every advance. */
+.reel__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 1.1rem;
+  background: rgba(255, 246, 250, 0.55);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 18px 40px -22px rgba(120, 60, 90, 0.45);
+}
+
+.reel__track {
+  display: flex;
+  height: 100%;
+  /* The only thing that animates in here. A transform on a single element
+     composites; anything touching width or left would relayout the whole
+     strip on every frame of every advance. */
+  transition: transform 0.72s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.reel__slide {
+  flex: 0 0 100%;
+  height: 100%;
+  margin: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* `contain` and not `cover`, deliberately. These are her photographs and they
+   are not all the same shape - cover would crop a portrait to a 4:3 window,
+   which on pictures of people means cutting off heads. Letterboxing against
+   the blush frame is the lesser loss. */
+.reel__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+.reel__caption {
+  margin: 0;
+  min-height: 1.4em;
+  font-family: var(--font-body);
+  font-size: clamp(0.85rem, 2vw, 1rem);
+  font-style: italic;
+  color: var(--plum-soft);
+  text-wrap: balance;
+}
+
+.reel__row {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.8rem, 3vw, 1.4rem);
+}
+
+.reel__step {
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(160, 90, 125, 0.28);
+  border-radius: 50%;
+  background: rgba(255, 246, 250, 0.7);
+  color: var(--plum);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.reel__step:hover:not([aria-disabled='true']) {
+  transform: scale(1.08);
+}
+
+/* aria-disabled and not the disabled attribute, deliberately. A disabled
+   button drops out of the tab order the instant it is pressed into its own
+   limit, which hands focus back to the body and ends the arrow-key run she was
+   halfway through. This looks identical and stays focusable; the handler
+   clamps, so pressing it does nothing either way. */
+.reel__step[aria-disabled='true'] {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.reel__step:focus-visible {
+  outline: 2px solid var(--plum-soft);
+  outline-offset: 3px;
+}
+
+.reel__count {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: var(--plum-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A square handles a mixed set better than 4:3 does once the frame is only a
+   phone wide: portraits stop being letterboxed down to a stripe. */
+@media (max-width: 560px) {
+  .reel__frame {
+    aspect-ratio: 1 / 1;
+  }
+}
+
+.reel__track.is-instant {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reel__track {
+    transition: none;
+  }
+}

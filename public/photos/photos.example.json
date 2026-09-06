@@ -1,0 +1,40 @@
+{
+  "//": [
+    "The photographs, shown as a carousel on the birthday page - between the",
+    "greeting and the flower bed.",
+    "",
+    "Copy this file to photos.json in the same folder and fill it in. Both",
+    "photos.json and the images themselves are gitignored: they are pictures of",
+    "her, and on a free GitHub Pages plan the repo serving this page has to be",
+    "public. Keep them out of the repo.",
+    "",
+    "Unlike the poem and the songs, there is NO schedule here. Every photograph",
+    "is hers the moment she reaches the page, because the page only exists on",
+    "the day. The order is the order she sees them in, and the last one is the",
+    "last one - autoplay stops there rather than looping.",
+    "",
+    "  src      required, relative to this folder's parent (so 'photos/x.jpg')",
+    "  caption  optional one line under the picture - where, when, or why",
+    "  alt      optional description for a screen reader. Falls back to the",
+    "           caption, which is usually the right thing anyway.",
+    "",
+    "24 is the maximum; past that the extras are dropped and the console says",
+    "so. Resize before you copy them in - these load on a phone, on mobile",
+    "data, on a page that is already fetching audio. Around 1600px on the long",
+    "edge is plenty, and turns 4MB from a camera into about 300KB.",
+    "",
+    "Mixed orientations are fine: the frame letterboxes rather than crops, so",
+    "nothing gets its head cut off."
+  ],
+  "photos": [
+    {
+      "src": "photos/01-first-chai.jpg",
+      "caption": "the chai place, before we knew it would become the chai place",
+      "alt": "two cups on a steel table"
+    },
+    {
+      "src": "photos/02-terrace.jpg",
+      "caption": "you, entirely unbothered, on somebody's terrace"
+    }
+  ]
+}

@@ -33,3 +33,8 @@ dist-ssr
 # it. songs.example.json is the committed template.
 public/songs/*
 !public/songs/songs.example.json
+
+# The photographs, for the same two reasons: they are pictures of her, and the
+# repo has to be public. photos.example.json is the committed template.
+public/photos/*
+!public/photos/photos.example.json

@@ -272,7 +272,7 @@ exactly as long as that page is mounted. The wash, the glows, the petals and the
 plant are all `position: fixed` already, so the whole sequence plays out over
 the same garden she has been watching for a month — which cost nothing to get.
 
-It runs in three beats.
+It runs in three beats, or four with photographs in it.
 
 **Her age**, alone on the screen. It stands there long enough to be read, then
 catches light at the feet of the digits and goes up in embers. Set it in
@@ -290,6 +290,10 @@ screen.
 **The greeting**, which is the `Celebration` screen that was already here — the
 title, the message, the confetti, and buttons through to the poem and the songs.
 It didn't need replacing to become the top of a longer page.
+
+**The photographs**, if there are any — see below. They go here, before the
+bed, so the page still ends on her name under something open rather than on a
+caption.
 
 **The bed**, six kinds of flower opening one at a time, under
 `{VITE_BIRTHDAY_TITLE}, {VITE_BIRTHDAY_NAME}`. It waits until it is scrolled to.
@@ -333,6 +337,76 @@ It didn't need replacing to become the top of a longer page.
   radial in life — a tulip is three petals over a narrow arc, a rose is three
   rings of one petal at falling scales. One code path for all six is what makes
   a seventh cheap.
+
+## The photographs
+
+Between the greeting and the flower bed, a carousel of pictures — one at a
+time, at the pace the rest of the page moves at. They're **gitignored**, for the
+same two reasons the songs are. Copy the template and fill it in:
+
+```bash
+cp public/photos/photos.example.json public/photos/photos.json
+```
+
+```
+public/photos/
+  photos.json           your manifest (gitignored)
+  01-first-chai.jpg     your pictures (gitignored)
+  photos.example.json   the committed template
+```
+
+`src` is the only required field, plus optional `caption` — one line under the
+picture — and `alt` for a screen reader, which falls back to the caption. 24 is
+the maximum; past that the extras are dropped and the console says so.
+
+**There is no schedule here**, which is the one way this differs from the poem
+and the songs. Those drip through the wait and so both count against the clock;
+these live on a page that only exists on the day, so every one of them is hers
+the moment she reaches it. The order is the order she sees them in.
+
+Same deployment consequence as the music, for the same reason: the images
+aren't in the repo, so a CI build has no photographs and the section simply
+isn't there. Ship them the same way — build locally, upload `dist/` yourself.
+And the same warning applies twice over: **gitignoring keeps them out of your
+repo, not out of your deployment.** Anyone with the link can fetch them, and
+the whole manifest is read up front, so every caption is in devtools. Don't put
+a picture there you'd mind a stranger seeing.
+
+**Resize before you copy them in.** These load on a phone, on mobile data, on a
+page already fetching audio. About 1600px on the long edge turns 4MB from a
+camera into ~300KB and looks identical in a frame this size.
+
+### Things worth knowing if you change it
+
+- **Only what she has reached has a `src`.** Every slide is in the DOM, and
+  without that the day would open with two dozen full-size photographs
+  downloading at once. The high-water mark only ever grows, so a photo that has
+  loaded never loses its `src` and is never fetched twice.
+- **The frame is an `aspect-ratio`, not a height**, so it's the same size on
+  every slide and the caption underneath never moves. A frame that resized to
+  each picture would make the page jump on every advance — the same class of
+  bug as the lyric sheet's `vh` cap.
+- **It letterboxes rather than crops.** `object-fit: cover` on a mixed set
+  means cutting the top off every portrait, which on pictures of people means
+  cutting off heads. Narrow screens switch the frame to a square, which suits a
+  mixed set better than 4:3 does once it's only a phone wide.
+- **Autoplay stops at the last photograph** instead of wrapping, and stops for
+  good the moment she touches anything. Looping would leave a timer running
+  behind the page for as long as the tab was open — the forever-animation this
+  project has already had to undo twice — and it would wreck the ending, since
+  the set is in an order and the last one is meant to be last. It's one
+  `setTimeout`, re-armed per slide, never an interval.
+- **It waits to be scrolled to.** Mounted at the bottom of a scrolling page,
+  autoplay would otherwise have run the whole set while she was still reading
+  the greeting two screens up. Same `IntersectionObserver` gate as the bed.
+- **The manifest is fetched in `BirthdayScroll`, not in `App`.** That component
+  only mounts once the day has arrived, so nobody spends a month of visits
+  asking for a file belonging to a screen they can't reach yet.
+- **The arrows use `aria-disabled`, not `disabled`.** A disabled button drops
+  out of the tab order the instant it's pressed into its own limit, which hands
+  focus to the body and ends the arrow-key run she was halfway through.
+- **Only the current slide is on the accessibility tree**, so tabbing through
+  doesn't read out every caption at once — the same rule the butterflies follow.
 
 ## Rehearsing the big day
 
@@ -439,6 +513,7 @@ src/App.jsx           picks between the waiting screen, the player and the day
 src/hooks/
   useCountdown.js     the one ticking clock (useNow) + pure derivations
   useSongs.js         fetches the song manifest, absent by default
+  usePhotos.js        fetches the photo manifest, absent by default
   useJukebox.js       the one <audio> element and its controls
   useHashView.js      which tab is showing, kept in the fragment
   useCelebrationConfig.js   fetches the server config, falls back to bundled
@@ -457,6 +532,7 @@ src/components/
   AgeBurn.jsx         her age, sampled off a canvas and burnt away in embers
   Celebration.jsx     confetti + the birthday message
   FlowerBloom.jsx     the bed, opening one flower at a time
+  PhotoCarousel.jsx   the photographs, one at a time
   ButterflyFlight.jsx one butterfly per unlocked line, landed on the plant
   PoemSheet.jsx       the whole poem so far, over the page
   MusicRoom.jsx       the disc, the transport row and the lyric sheet
@@ -464,7 +540,9 @@ src/lib/secret.js     hashing and comparison for the passphrase
 src/lib/timeTravel.js the ?at= preview clock
 src/lib/songs.js      the ten-for-ten schedule and manifest parsing
 src/lib/flowers.js    six species, and the bed they come up in
+src/lib/photos.js     manifest parsing for the photographs
 public/songs/         the audio and songs.json (both gitignored)
+public/photos/        the images and photos.json (both gitignored)
 src/lib/poem.js       the poem, and which of it she has earned yet
 scripts/make-key.mjs  npm run key -- "phrase"
 src/styles/global.css
