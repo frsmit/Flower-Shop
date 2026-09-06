@@ -21,10 +21,10 @@ const DWELL = 5500;
 // A swipe, rather than a tap that drifted. Below this it is a tap.
 const SWIPE = 40;
 
-function PhotoCarousel({ photos }) {
+function PhotoCarousel({ photos, initialIndex = 0, onClose }) {
   const hostRef = useRef(null);
   const reduced = useReducedMotion();
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(initialIndex);
 
   /**
    * The furthest slide that has been reachable, which is what decides who has
@@ -36,7 +36,7 @@ function PhotoCarousel({ photos }) {
    * grows, so a photo that has loaded never loses its `src` and never has to
    * be fetched a second time on the way back.
    */
-  const [reach, setReach] = useState(1);
+  const [reach, setReach] = useState(() => Math.max(1, initialIndex + 1));
 
   /**
    * Whether she has taken over. Autoplay is a suggestion for someone who has
@@ -45,7 +45,10 @@ function PhotoCarousel({ photos }) {
    * deliberately looking at it is the single worst thing this component could
    * do.
    */
-  const [steered, setSteered] = useState(false);
+  // Opened by tapping one photograph in particular, she is already steering:
+  // advancing out from under the picture she asked for would be the rudest
+  // possible reading of "autoplay".
+  const [steered, setSteered] = useState(() => Boolean(onClose));
 
   // Started only once the bed of photographs is actually on screen. Mounted at
   // the bottom of a scrolling page, autoplay would otherwise have run through
@@ -100,10 +103,11 @@ function PhotoCarousel({ photos }) {
     (event) => {
       if (event.key === 'ArrowRight') go(index + 1, true);
       else if (event.key === 'ArrowLeft') go(index - 1, true);
+      else if (event.key === 'Escape' && onClose) onClose();
       else return;
       event.preventDefault();
     },
-    [go, index],
+    [go, index, onClose],
   );
 
   const touch = useRef(null);

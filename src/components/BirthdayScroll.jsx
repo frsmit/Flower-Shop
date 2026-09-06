@@ -4,6 +4,7 @@ import AgeBurn from './AgeBurn.jsx';
 import Celebration from './Celebration.jsx';
 import FlowerBloom from './FlowerBloom.jsx';
 import PhotoCarousel from './PhotoCarousel.jsx';
+import PhotoTrail from './PhotoTrail.jsx';
 import usePhotos from '../hooks/usePhotos.js';
 
 /**
@@ -34,6 +35,12 @@ export default function BirthdayScroll({ config, onReadPoem, onOpenMusic }) {
   // arrived, so nobody spends a month of visits asking for a manifest that
   // belongs to a screen they cannot reach yet.
   const photos = usePhotos();
+
+  // Which photograph she has picked off the trail, if any. Null is the whole
+  // of the closed state - there is no separate "is the viewer open" flag to
+  // fall out of step with it.
+  const [openIndex, setOpenIndex] = useState(null);
+  const closeViewer = useCallback(() => setOpenIndex(null), []);
 
   // No age configured is a normal state, not a missing one: the page opens on
   // the greeting exactly as it did before this section existed.
@@ -74,13 +81,32 @@ export default function BirthdayScroll({ config, onReadPoem, onOpenMusic }) {
 
       {photos.length > 0 ? (
         <section className="birthday__section birthday__section--reel">
-          <PhotoCarousel photos={photos} />
+          <PhotoTrail photos={photos} onOpen={setOpenIndex} />
         </section>
       ) : null}
 
       <section className="birthday__section birthday__section--bed">
         <FlowerBloom title={`${config.birthdayTitle}, ${config.name}`} />
       </section>
+
+      {/* The picked photograph, full size. The trail is the arrangement; this
+          is where a photograph is actually looked at, and it is the carousel
+          that was already here - so the arrows, the keyboard, the swipe and
+          the caption all come with it and she can carry on through the set
+          from wherever she tapped. */}
+      {openIndex !== null ? (
+        <div className="viewer" role="dialog" aria-modal="true" aria-label="photograph">
+          <button
+            type="button"
+            className="viewer__close"
+            onClick={closeViewer}
+            aria-label="close"
+          >
+            <span aria-hidden="true">✕</span>
+          </button>
+          <PhotoCarousel photos={photos} initialIndex={openIndex} onClose={closeViewer} />
+        </div>
+      ) : null}
     </div>
   );
 }
