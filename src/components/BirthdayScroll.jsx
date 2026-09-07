@@ -5,6 +5,7 @@ import Celebration from './Celebration.jsx';
 import FlowerBloom from './FlowerBloom.jsx';
 import PhotoCarousel from './PhotoCarousel.jsx';
 import PhotoTrail from './PhotoTrail.jsx';
+import WishLetter from './WishLetter.jsx';
 import usePhotos from '../hooks/usePhotos.js';
 
 /**
@@ -87,6 +88,13 @@ export default function BirthdayScroll({ config, onReadPoem, onOpenMusic }) {
 
       <section className="birthday__section birthday__section--bed">
         <FlowerBloom title={`${config.birthdayTitle}, ${config.name}`} />
+      </section>
+
+      {/* Last. The bed is the last thing that MOVES on its own; this is the
+          last thing she reads, and it waits to be scrolled to before it starts
+          saying it. */}
+      <section className="birthday__section birthday__section--note">
+        <WishLetter wish={config.birthdayWish} />
       </section>
 
       {/* The picked photograph, full size. The trail is the arrangement; this

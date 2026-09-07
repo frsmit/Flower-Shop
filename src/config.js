@@ -77,6 +77,19 @@ export const defaultConfig = {
    * one screen nobody is going to be watching when it renders.
    */
   birthdayAge: pick(env.VITE_BIRTHDAY_AGE, null),
+  /**
+   * The wish, on the sheet of paper at the very end of the day.
+   *
+   * Set apart from birthdayMessage on purpose. That one sits under the title
+   * at the top and is read in a second; this is the last thing on the page and
+   * arrives a word at a time, so it is written to be read slowly and can
+   * afford to be longer and more said-out-loud than a greeting.
+   */
+  birthdayWish: pick(
+    env.VITE_BIRTHDAY_WISH,
+    'May this year be gentle with you. May it be full of small good mornings, the kind of quiet that feels like rest, and everything you have been hoping for without ever saying it out loud.',
+  ),
+
   birthdayMessage: pick(
     env.VITE_BIRTHDAY_MESSAGE,
     'You made another trip around the sun look effortless. Here is to a year that smells like fresh flowers.',

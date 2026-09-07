@@ -2417,26 +2417,67 @@ body {
 
 /* ---------- the photographs, on a curve ------------------------------ */
 
-/* Capped by the viewport's height through the ratio, for exactly the reason
-   the photo frame is: aspect-ratio derives height from width, so left on
-   width alone the curve came out 1393x724 in a 770px window and ran off both
-   ends of its own section. */
+/* Fills its whole section, so "out of the bottom of the screen" means the
+   actual bottom of the screen. The path runs past both ends of the visible
+   area on purpose and this is what clips it, which is what hides the seam in
+   a loop that never stops. */
 .trail {
-  position: relative;
-  width: min(100%, 64rem, calc(56vh * 1000 / 520));
-  aspect-ratio: var(--trail-ratio);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Fourteen photographs moving continuously inside here. `contain` tells the
+     browser that nothing in this box can affect layout or painting outside it,
+     so their repaints stop being the whole page's problem. */
+  contain: layout paint;
 }
 
-/* Carries the placement - position on the curve, and the rotation that sits it
-   square on the tangent. Nothing else may put a transform on this node. */
+/* The path is authored at 1000x520 and this scales it to the page. Scaling one
+   wrapper rather than converting the geometry keeps photoPath.js free of
+   percentages and keeps the photographs in proportion with the curve. */
+.trail__stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
 .trail__photo {
   position: absolute;
-  aspect-ratio: 1;
+  top: 0;
+  left: 0;
+  width: var(--trail-photo);
+  height: var(--trail-photo);
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
-  transition: z-index 0s;
+
+  /* The entire motion. offset-distance and the rotation that offset-rotate
+     derives from the tangent are both composited, so this runs forever without
+     asking the main thread for anything - which is the only reason a loop that
+     never stops belongs on the same page as a clock that ticks every second. */
+  offset-path: var(--trail-path);
+  offset-rotate: auto;
+  offset-distance: 0%;
+  animation: trail-travel var(--trail-travel) linear infinite;
+  animation-delay: var(--trail-delay);
+  /* Each of these carries a shadow and moves every frame, so each one wants to
+     be its own layer rather than repainting a patch of the section under it.
+     Fourteen small layers is a cheap trade for that. */
+  will-change: offset-distance;
+}
+
+/* Off screen, it does not move. Paused rather than removed, so it picks up
+   exactly where it was when she scrolls back rather than jumping. */
+.trail__stage:not(.is-running) .trail__photo {
+  animation-play-state: paused;
+}
+
+/* So a moving target can actually be caught. The stream holds still while she
+   is reaching for one, and picks up again when she is not. */
+.trail:hover .trail__photo,
+.trail:focus-within .trail__photo {
+  animation-play-state: paused;
 }
 
 .trail__photo:hover,
@@ -2448,53 +2489,40 @@ body {
   outline: none;
 }
 
-/* Absolute with inset rather than width/height: 100%, and not as a tidiness
-   preference. The parent's height comes from aspect-ratio, and a percentage
-   height does not resolve against a ratio-derived one - the exact failure that
-   let a portrait render 800px tall inside a 400px frame further up this file.
-   inset takes the box from a definite padding box instead. */
+/* Absolute with inset rather than a percentage height: the parent is sized by
+   custom property here, but the rule that bit twice already stands - a
+   replaced element and a ratio-derived box do not mix. */
 .trail__inner {
   position: absolute;
   inset: 0;
   display: block;
   background: rgba(255, 252, 253, 0.96);
   box-shadow:
-    0 1px 2px rgba(120, 60, 90, 0.18),
-    0 8px 16px -10px rgba(120, 60, 90, 0.5);
-  opacity: 0;
-  /* The entrance scale lives here, one node inside the rotation above, so the
-     two never write to the same transform. */
-  transform: scale(0.5);
+    0 1px 2px rgba(120, 60, 90, 0.2),
+    0 10px 20px -12px rgba(120, 60, 90, 0.55);
 }
 
-.trail.is-open .trail__inner {
-  animation: trail-in 0.66s cubic-bezier(0.16, 1, 0.3, 1) var(--trail-delay) forwards;
-}
-
-/* The white margin is the inset, so the image needs no box model of its own. */
-/* Sized in per cent rather than by `inset` alone. An absolutely positioned
-   REPLACED element with `width: auto` takes its intrinsic width and ignores
-   the opposite offset, so `inset: 7%` left a 800x1200 photograph laid out at
-   509x666 inside a 134px square - the whole trail was a pile of oversized
-   images stacked on the origin. The containing block here has a definite
-   height (it is `inset: 0` inside a square), so these per cents do resolve. */
+/* Sized in per cent, NOT by inset alone. An absolutely positioned REPLACED
+   element with width: auto takes its intrinsic width and ignores the opposite
+   offset, which laid a 800x1200 photograph out at 509x666 inside an 86px
+   square the first time this was written. */
 .trail__img {
   position: absolute;
   top: 7%;
   left: 7%;
   width: 86%;
   height: 86%;
-  /* `cover` here, unlike the viewer, and deliberately: at this size a photo is
-     a bead on a string, and letterboxing a portrait into a 60px square leaves
-     a stripe with two grey margins. Nothing is lost - the whole picture is one
-     tap away, where it letterboxes properly. */
+  /* cover, unlike the viewer: at this size a photograph is a bead on a string,
+     and letterboxing a portrait into a small square leaves a stripe between
+     two grey margins. The whole picture is one tap away, where it letterboxes
+     properly. */
   object-fit: cover;
   transition: transform 0.25s ease;
 }
 
 .trail__photo:hover .trail__img,
 .trail__photo:focus-visible .trail__img {
-  transform: scale(1.07);
+  transform: scale(1.06);
 }
 
 .trail__photo:focus-visible .trail__inner {
@@ -2502,36 +2530,42 @@ body {
   outline-offset: 2px;
 }
 
-@keyframes trail-in {
-  from {
+/* offset-distance is only given at the two ends, so it interpolates evenly
+   across the whole run. The opacity stops in between are the fade that makes
+   the wrap invisible even if an end of the curve is ever on screen. */
+@keyframes trail-travel {
+  0% {
+    offset-distance: 0%;
     opacity: 0;
-    transform: scale(0.5);
   }
-  to {
+  6% {
     opacity: 1;
-    transform: scale(1);
+  }
+  94% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
   }
 }
 
-/* Reduced motion, and the no-IntersectionObserver fallback: they are simply
-   there. A trail that never arrives is a blank rectangle. */
-.trail.is-instant .trail__inner,
-.trail:not(.is-open) .trail__inner {
+/* Motion off: they stop being a stream and become an arrangement, spread over
+   the part of the curve that is actually on screen. A loop she did not ask for
+   is exactly what this setting is for. */
+.trail__stage.is-still .trail__photo {
   animation: none;
-}
-
-.trail.is-instant .trail__inner,
-.trail.is-instant.is-open .trail__inner {
+  offset-distance: var(--trail-still);
   opacity: 1;
-  transform: scale(1);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .trail__inner {
+  .trail__photo {
     animation: none !important;
+    offset-distance: var(--trail-still) !important;
     opacity: 1;
-    transform: scale(1);
   }
+
   .trail__img {
     transition: none;
   }
@@ -2546,8 +2580,11 @@ body {
   display: grid;
   place-items: center;
   padding: clamp(1rem, 4vw, 3rem);
-  background: rgba(60, 24, 44, 0.55);
-  backdrop-filter: blur(3px);
+  /* Opaque enough to do the job on its own. A backdrop-filter here would have
+     been blurring the petal canvas, which repaints every frame - so the blur
+     would have been recomputed every frame too, for the whole screen, exactly
+     the way the glass countdown tiles once were. */
+  background: rgba(60, 24, 44, 0.82);
 }
 
 .viewer__close {
@@ -2587,4 +2624,95 @@ body {
 
 .viewer .reel__step {
   background: rgba(255, 246, 250, 0.88);
+}
+
+/* ---------- the wish, on a sheet of paper ---------------------------- */
+
+/* NOT .letter - that name and a dozen .letter__* children already belong to
+   the sealed envelope on the way in, and taking it over turned that screen's
+   letter into an A4 sheet. */
+
+/* Height first, width derived from it - NOT aspect-ratio. aspect-ratio is a
+   preferred ratio, not a rule: the wish is longer than a ratio-derived box can
+   hold, so the text stretched the sheet to 362x1008 and A4 quietly became
+   1:2.8. Sizing from a height the window is known to have keeps the ratio
+   exact and makes the text the thing that has to fit. */
+.wish {
+  --sheet-h: min(62vh, 34rem);
+  position: relative;
+  height: var(--sheet-h);
+  width: calc(var(--sheet-h) * 210 / 297);
+  display: grid;
+  place-items: center;
+  /* Derived from the sheet, NOT a percentage. Percentage padding resolves
+     against the CONTAINING BLOCK's width, which here is the width of the whole
+     section - so 10% was over a hundred pixels a side on a 300px sheet and
+     squeezed the wish into a column one word wide. */
+  padding: calc(var(--sheet-h) * 0.1) calc(var(--sheet-h) * 0.085);
+  /* Warm white, a touch warmer at the foot, which is all it takes to stop a
+     white rectangle reading as a white rectangle. */
+  background: linear-gradient(178deg, #fffdfa 0%, #fdfaf3 62%, #f8f1e6 100%);
+  /* Layered rather than one wide blur: a tight line for the contact edge, then
+     one soft cast for the lift. Cheaper, and it looks more like paper. */
+  box-shadow:
+    0 1px 1px rgba(90, 50, 70, 0.14),
+    0 2px 4px rgba(90, 50, 70, 0.1),
+    0 18px 36px -18px rgba(90, 50, 70, 0.42);
+}
+
+.wish__text {
+  margin: 0;
+  /* The sheet centres its one child, and a centred grid item is sized to fit
+     its content - which for a paragraph of inline-blocks is the width of the
+     longest WORD. */
+  width: 100%;
+  font-family: var(--font-body);
+  /* Tied to the sheet rather than the viewport, so the proportion of type to
+     paper is the same on every screen - which is what makes it read as a
+     letter rather than as a box of text. */
+  font-size: calc(var(--sheet-h) * 0.038);
+  line-height: 1.8;
+  text-align: center;
+  text-wrap: balance;
+  color: #4a3a42;
+}
+
+.wish__word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.4em);
+}
+
+.wish.is-open .wish__word {
+  animation: wish-word 0.85s cubic-bezier(0.16, 1, 0.3, 1) var(--word-delay) forwards;
+}
+
+/* Transform and opacity only - see the note in WishLetter.jsx about blur. */
+@keyframes wish-word {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wish:not(.is-open) .wish__word {
+  animation: none;
+}
+
+.wish.is-instant .wish__word {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wish__word {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
 }
