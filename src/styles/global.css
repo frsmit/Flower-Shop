@@ -1949,6 +1949,12 @@ body {
   flex-direction: column;
   align-items: center;
   gap: clamp(0.55rem, 1.6vh, 0.9rem);
+  /* Both needed once the words live in here. `.music` is a height-capped
+     column, and a flex item will not shrink below its content unless it is
+     told it may - so without these the lyrics push the deck past the bottom of
+     the screen and the centred column spills out of both ends at once. */
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 /* Transform-only rotation, so it composites instead of repainting. The petal
@@ -1964,12 +1970,12 @@ body {
    that have to be recomputed - because it sits directly under a spinning
    element and anything expensive here is paid for on every frame of the spin. */
 .turntable {
-  --disc: clamp(8rem, 22vh, 12rem);
+  --disc: clamp(6.5rem, 17vh, 9.5rem);
   position: relative;
   display: grid;
   place-items: center;
   width: calc(var(--disc) + 4.6rem);
-  padding: 1.5rem 1.5rem 2.1rem;
+  padding: 1.15rem 1.15rem 1.65rem;
   border-radius: 1rem;
   background:
     /* grain */
@@ -2463,21 +2469,44 @@ body {
    scroller is invisible, which is the entire difference. */
 .lyrics {
   width: min(100%, 34rem);
-  /* Takes what it needs up to its cap and no more. It used to be flex: 1 in a
-     height-capped column; inside the deck there is no such ceiling, so a
-     percentage would resolve against an auto height and the words would push
-     the transport row off the bottom of the page. */
-  flex: 0 1 auto;
+  /* The one thing in the deck that may give. Everything else - the platter,
+     the timestamps, the buttons - has a size it needs; the words are what can
+     be shown less of, so they absorb whatever the screen is short of, down to
+     nothing, and scroll. The cap is a flat vh because there is no ancestor
+     with a definite height to take a percentage of. */
+  /* The one thing in the deck that may give. Everything else - the platter,
+     the timestamps, the buttons - has a size it needs; the words are what can
+     be shown less of, so they take whatever is left and scroll.
+
+     The cap and the scroll both live here rather than on the sheet. Put the
+     cap on the sheet and it sizes from its own content, so when flex shrinks
+     this box the sheet keeps its full height and simply draws over the
+     transport row - which is exactly what it did. */
+  flex: 1 1 auto;
   min-height: 0;
+  max-height: 30vh;
   display: flex;
   justify-content: center;
 }
 
 .lyrics__sheet {
   width: 100%;
-  max-height: 30vh;
+  height: 100%;
+  min-height: 0;
   overflow-y: auto;
   padding: 0.2rem 0.6rem;
+  /* Fades the words out at both edges instead of slicing them.
+
+     Without it the line at the top of the scroll is cut clean through the
+     middle, which on a page with no visible box around it looks like a
+     rendering fault rather than more words above. */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 1.6rem,
+    #000 calc(100% - 1.6rem),
+    transparent 100%
+  );
   text-align: center;
   scrollbar-width: none;
 }
