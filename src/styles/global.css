@@ -406,7 +406,18 @@ body {
   gap: 1rem;
   flex: 1 1 16rem;
   min-width: 0;
-  max-width: 26rem;
+  /* Wide enough to keep the two pills on one line.
+
+     "ten for ten" became "twelve for twelve", and those five characters were
+     enough to push the row past 26rem and wrap it - which stacked the buttons
+     and dropped them half a line down the page. The row below is a row on
+     purpose: the comment in App.jsx notes the layout was measured against
+     short screens with these side by side.
+
+     Widening costs nothing here. The only other thing in this column is a
+     single centred line, so a wider box does not move it, and the flower ring
+     beside it still has room to spare. */
+  max-width: 36rem;
 }
 
 .whispers {
@@ -1949,12 +1960,10 @@ body {
   flex-direction: column;
   align-items: center;
   gap: clamp(0.55rem, 1.6vh, 0.9rem);
-  /* Both needed once the words live in here. `.music` is a height-capped
-     column, and a flex item will not shrink below its content unless it is
-     told it may - so without these the lyrics push the deck past the bottom of
-     the screen and the centred column spills out of both ends at once. */
-  flex: 0 1 auto;
-  min-height: 0;
+  /* Deliberately not shrinkable. Everything in here - platter, timestamps,
+     buttons - has a size it needs, and letting flex squash the box only made
+     its contents overflow and draw over the words below. The lyric block is
+     the one that gives. */
 }
 
 /* Transform-only rotation, so it composites instead of repainting. The petal
@@ -2484,7 +2493,7 @@ body {
      transport row - which is exactly what it did. */
   flex: 1 1 auto;
   min-height: 0;
-  max-height: 30vh;
+  max-height: 34vh;
   display: flex;
   justify-content: center;
 }
@@ -2503,8 +2512,8 @@ body {
   mask-image: linear-gradient(
     to bottom,
     transparent 0,
-    #000 1.6rem,
-    #000 calc(100% - 1.6rem),
+    #000 1.15rem,
+    #000 calc(100% - 1.15rem),
     transparent 100%
   );
   text-align: center;
@@ -2524,15 +2533,15 @@ body {
   border-radius: 0.6rem;
 }
 
-/* Same face, size and colour as the poem lines on the front page. */
+/* Quieter than the poem on the front page. That size is right for the thing
+   being read on that page; here the song is the thing, and lyrics at that
+   scale crowded the player they belong to. */
 .lyrics__line {
   margin: 0;
   font-family: var(--font-display);
-  font-style: italic;
-  font-size: clamp(1rem, 2.5vw, 1.32rem);
-  line-height: 1.85;
+  font-size: clamp(0.92rem, 2.4vw, 1.06rem);
+  line-height: 1.75;
   color: var(--plum);
-  opacity: 0.86;
 }
 
 /* A verse break, kept as space. Collapsing the blank lines turns a song into
@@ -2572,7 +2581,7 @@ body {
 }
 
 .lyrics__line--sung {
-  opacity: 0.86;
+  opacity: 1;
 }
 
 .lyrics__line--now {

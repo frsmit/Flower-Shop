@@ -253,36 +253,6 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
           <span className="deck__time">{formatTime(duration)}</span>
         </div>
 
-        {/*
-          Either a panel in the column or a drawer over it - never both, and
-          never one of them merely hidden. Two copies of the same words would
-          both be in the accessibility tree, and a screen reader would happily
-          read the one nobody can see.
-        */}
-        {cramped ? (
-          <button
-            type="button"
-            className="lyrics__peek"
-            onClick={openLyrics}
-            disabled={!hasLyrics}
-            aria-haspopup="dialog"
-            aria-expanded={lyricsOpen}
-          >
-            <span aria-hidden="true">↑</span>{' '}
-            {hasLyrics ? 'the words' : 'no words for this one'}
-          </button>
-        ) : (
-          <div className="lyrics">
-            {hasLyrics ? (
-              <div className="lyrics__sheet" tabIndex={0} aria-label="Lyrics">
-                <LyricLines lines={lyrics} timed={timed} elapsed={elapsed} />
-              </div>
-            ) : (
-              <p className="lyrics__empty">no words typed up for this one yet &mdash; just the song</p>
-            )}
-          </div>
-        )}
-
         <div className="deck__transport">
           <button
             type="button"
@@ -334,6 +304,36 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
           </p>
         ) : null}
       </div>
+
+      {/*
+        Either a panel in the column or a drawer over it - never both, and
+        never one of them merely hidden. Two copies of the same words would
+        both be in the accessibility tree, and a screen reader would happily
+        read the one nobody can see.
+      */}
+      {cramped ? (
+        <button
+          type="button"
+          className="lyrics__peek"
+          onClick={openLyrics}
+          disabled={!hasLyrics}
+          aria-haspopup="dialog"
+          aria-expanded={lyricsOpen}
+        >
+          <span aria-hidden="true">↑</span>{' '}
+          {hasLyrics ? 'the words' : 'no words for this one'}
+        </button>
+      ) : (
+        <div className="lyrics">
+          {hasLyrics ? (
+            <div className="lyrics__sheet" tabIndex={0} aria-label="Lyrics">
+              <LyricLines lines={lyrics} timed={timed} elapsed={elapsed} />
+            </div>
+          ) : (
+            <p className="lyrics__empty">no words typed up for this one yet &mdash; just the song</p>
+          )}
+        </div>
+      )}
 
       <AnimatePresence>
         {cramped && lyricsOpen && hasLyrics ? (
