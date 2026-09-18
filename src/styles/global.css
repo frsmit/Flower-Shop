@@ -468,25 +468,49 @@ body {
   color: var(--ink-soft);
 }
 
-.celebration__again {
-  margin-top: 1.8rem;
-  padding: 0.85rem 2.1rem;
-  border-radius: 999px;
-  border: 1px solid var(--glass-line);
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.9), rgba(255, 236, 242, 0.74));
-  box-shadow: var(--shadow-soft);
-  color: var(--rose-deep);
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  cursor: pointer;
+/* The ways out of this screen, on one quiet line under a hairline rule.
+   Deliberately NOT pills: three lozenges stacked down the middle read as a
+   menu competing with her name, and these are not the point of the screen.
+   No fill, no border, no shadow - the rule above them is the only thing
+   dividing them from the message. Wraps rather than overflowing on a narrow
+   phone, the same way `.waiting__links` does. */
+.celebration__actions {
+  width: min(100%, 34rem);
+  margin-top: 1.6rem;
+  padding-top: 1.05rem;
+  border-top: 1px solid rgba(199, 150, 172, 0.28);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem 1.5rem;
 }
 
-.celebration__again:focus-visible {
-  outline: 2px solid var(--rose);
-  outline-offset: 4px;
+.celebration__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.32rem 0.25rem;
+  border: 0;
+  background: none;
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+
+.celebration__link:hover {
+  color: var(--rose-deep);
+}
+
+.celebration__link:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 3px;
+  border-radius: 999px;
 }
 
 /* ---------- the birthday page ---------------------------------------- */
@@ -766,6 +790,20 @@ body {
   animation: sway 7s ease-in-out infinite alternate;
 }
 
+/* The plant holds still on the day.
+   An animated transform on an SVG <g> is not composited - Chrome has no
+   compositor path for it - so every sway frame re-rasterises that cane's whole
+   subtree and re-applies the mask over the element it sits in. That is a price
+   worth paying on the waiting screens, where the plant IS the page and nothing
+   else is moving but petals. The day is the opposite: it is the one screen that
+   scrolls, and it already spends its frame budget on the ember canvas, the
+   confetti, the petal canvas, the trail and two hundred opening petals. Eleven
+   canes quietly repainting behind all of that is what you feel as chop while
+   scrolling, and it buys motion nobody is looking at. */
+.app--celebrating .vine__cane {
+  animation: none;
+}
+
 /* A hanging cane should pivot from where it's attached - the top. */
 .vines__drape .vine__cane {
   transform-origin: top center;
@@ -1026,9 +1064,14 @@ body {
     font-size: 0.9rem;
   }
 
-  .celebration__again {
-    margin-top: 0.9rem;
-    padding: 0.6rem 1.4rem;
+  /* Short landscape screens are tight vertically, not horizontally: at that
+     width the row still sits on one line, so the only thing to buy back is
+     the space the hairline's padding takes. Comfortably shorter than the
+     stack of pills this replaced, so it cannot overflow a screen that used
+     to fit. */
+  .celebration__actions {
+    margin-top: 0.8rem;
+    padding-top: 0.7rem;
   }
 }
 
@@ -1495,25 +1538,6 @@ body {
   letter-spacing: 0.08em;
 }
 
-.celebration__poem {
-  margin-top: 0.9rem;
-  padding: 0.6rem 1.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--glass-line);
-  background: rgba(255, 255, 255, 0.6);
-  font-family: var(--font-ui);
-  font-size: 0.8rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--plum);
-  cursor: pointer;
-}
-
-.celebration__poem:focus-visible {
-  outline: 2px solid var(--rose-deep);
-  outline-offset: 3px;
-}
-
 /* ---------- the poem sheet -------------------------------------------- */
 
 .sheet {
@@ -1741,7 +1765,7 @@ body {
   text-transform: none;
 }
 
-/* ---------- ten for ten ----------------------------------------------- */
+/* ---------- twelve for twelve ----------------------------------------------- */
 
 /* Screen-reader-only. The day strip is a row of bare numbers, which tells a
    sighted visitor everything and a screen reader nothing at all. */
@@ -2024,54 +2048,149 @@ body {
   text-align: center;
 }
 
-.deck__range {
+/* ---- the blossom scrubber ------------------------------------------------
+   A branch that comes into flower as the song plays, standing in for the
+   track-and-thumb slider. The drawing is inert and aria-hidden; the real
+   range input is still on top of it, at full size and invisible, so seeking,
+   arrow keys and the label are the browser's own. */
+.scrub {
+  position: relative;
   flex: 1;
-  height: 1.1rem;
+  min-width: 0;
+  display: flex;
+}
+
+/* One rule is the whole of the responsiveness: the viewBox scales the branch
+   to whatever width the deck gives it, at any size, with no breakpoints. */
+.scrub__art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.scrub__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   margin: 0;
+  padding: 0;
   appearance: none;
   background: transparent;
+  opacity: 0;
   cursor: pointer;
 }
 
-.deck__range::-webkit-slider-runnable-track {
-  height: 3px;
-  border-radius: 999px;
-  background: rgba(199, 150, 172, 0.42);
+/* On a phone the branch is only ~40px tall, which is under the comfortable
+   target size - so the invisible slider is allowed to be taller than the
+   picture it sits on. */
+@media (pointer: coarse) {
+  .scrub__input {
+    height: 2.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
 }
 
-.deck__range::-moz-range-track {
-  height: 3px;
-  border-radius: 999px;
-  background: rgba(199, 150, 172, 0.42);
+.scrub:has(.scrub__input:focus-visible) {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 4px;
+  border-radius: 0.75rem;
 }
 
-.deck__range::-webkit-slider-thumb {
-  appearance: none;
-  width: 0.8rem;
-  height: 0.8rem;
-  margin-top: -0.28rem;
-  border-radius: 50%;
-  background: var(--rose-deep);
-  box-shadow: 0 2px 6px -1px rgba(150, 84, 110, 0.7);
-}
-
-.deck__range::-moz-range-thumb {
-  width: 0.8rem;
-  height: 0.8rem;
-  border: 0;
-  border-radius: 50%;
-  background: var(--rose-deep);
-}
-
-.deck__range:disabled {
+.scrub--off {
   opacity: 0.45;
+}
+
+.scrub--off .scrub__input {
   cursor: default;
 }
 
-.deck__range:focus-visible {
-  outline: 2px solid var(--rose-deep);
-  outline-offset: 4px;
-  border-radius: 999px;
+.scrub__bark {
+  fill: rgba(150, 110, 125, 0.28);
+}
+
+/* The stretch of bough already played, clipped to the playhead. */
+.scrub__bark--lit {
+  fill: rgba(140, 96, 116, 0.6);
+  transition: none;
+}
+
+.scrub__twig {
+  stroke: rgba(150, 110, 125, 0.34);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.scrub__petal {
+  fill: var(--rose);
+}
+
+.scrub__heart {
+  fill: var(--rose-deep);
+}
+
+/* Shut until the song reaches it: a small dull bud that opens on the way past.
+   `transform-box: fill-box` makes the scale happen about the flower's own
+   middle rather than the corner of the whole drawing. */
+.scrub__bud {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0.5;
+  transition: opacity 0.5s ease;
+}
+
+.scrub__bud use {
+  transform-box: fill-box;
+  transform-origin: center;
+  scale: 0.5;
+  transition: scale 0.55s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.scrub__bud--open {
+  opacity: 1;
+}
+
+.scrub__bud--open use {
+  scale: 1;
+}
+
+/* Where the song is. Translated in CSS rather than by attribute so the step
+   between two `timeupdate`s glides instead of jumping. */
+.scrub__head {
+  transition: transform 0.24s linear;
+}
+
+.scrub__halo {
+  fill: rgba(231, 139, 168, 0.22);
+}
+
+.scrub__turn {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.scrub__turn--going {
+  animation: scrub-turn 14s linear infinite;
+}
+
+@keyframes scrub-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrub__head,
+  .scrub__bud,
+  .scrub__bud use {
+    transition: none;
+  }
+
+  .scrub__turn--going {
+    animation: none;
+  }
 }
 
 .deck__transport {
@@ -2080,6 +2199,10 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  /* Positioned so it paints above the scrubber's invisible slider, which on a
+     touch screen is deliberately taller than the branch it covers and would
+     otherwise clip the top edge of the play button. */
+  position: relative;
 }
 
 .deck__key {
@@ -2203,6 +2326,45 @@ body {
   font-size: clamp(0.92rem, 2.4vw, 1.06rem);
   line-height: 1.75;
   color: var(--plum);
+}
+
+/* Where a song came with timings, the line being sung is lit and the rest step
+   back. Only the seven songs LRCLIB had an LRC for get these classes at all -
+   the other five render as they always did, rather than sitting uniformly
+   dimmed waiting for a highlight that is never coming.
+
+   The dimming is deliberately shallow. This is a sheet she is reading, not a
+   karaoke screen, and the lines she has just heard are the ones she is most
+   likely to want to look back at. */
+.lyrics__line--on,
+.lyrics__line--off {
+  transition: color 0.35s ease, opacity 0.35s ease;
+}
+
+.lyrics__line--off {
+  color: var(--plum-soft);
+  opacity: 0.6;
+}
+
+.lyrics__line--on {
+  color: var(--rose-deep);
+  opacity: 1;
+  font-weight: 600;
+}
+
+/* The scroll is smooth-scrolled from JS and the colour fades; with reduced
+   motion both become instant. `scroll-behavior` is set here rather than passed
+   as a behavior option so it also covers a jump she causes herself. */
+@media (prefers-reduced-motion: reduce) {
+  .lyrics__line--on,
+  .lyrics__line--off {
+    transition: none;
+  }
+
+  .lyrics__sheet,
+  .drawer__body {
+    scroll-behavior: auto;
+  }
 }
 
 /* A verse break, kept as space. Collapsing the blank lines turns a song into
@@ -2714,5 +2876,294 @@ body {
     animation: none !important;
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ---------- touch targets --------------------------------------------- */
+
+/*
+ * Finger-sized hit areas, without moving a pixel of the design.
+ *
+ * Measured on a phone, most of the controls here draw smaller than the ~44px
+ * a fingertip actually needs: the quiet links under the birthday message are
+ * 26px tall, the poem butterflies run 24-41px depending how far down the
+ * garden they sit, the trail photographs shrink to 24px as they round the
+ * loop, and the sheet's close pill is 29px. Every one of those sizes is a
+ * deliberate drawing decision, so none of them are changed. Instead each
+ * control gets a transparent `::after` reaching out past its own edges: the
+ * halo is what the finger hits, the drawing stays exactly as it was.
+ *
+ * Keyed on `pointer: coarse` rather than on width, because this is a property
+ * of the input device and not of the screen - a touch laptop has the same fat
+ * fingers at 1280px, and a narrow desktop window does not have them at 360px.
+ * It also means the hover-driven desktop design is left completely alone.
+ *
+ * Two things this must not break. Every expander is absolutely positioned and
+ * so contributes no layout box, because the heights on the waiting screen were
+ * measured to the pixel against 360x640 and 740x360 and must not grow. And a
+ * hit area is only safe to enlarge if the next one along isn't already within
+ * reach, so where two halos would have collided the gap between them goes up
+ * to match - see `.discs` and `.celebration__actions`.
+ */
+@media (pointer: coarse) {
+  /* These draw in normal flow, so they need to become a positioning context
+     before a halo can be pinned to them. Purely a containing-block change;
+     nothing moves. */
+  .celebration__link,
+  .poem-open,
+  .sheet__close,
+  .discs__day,
+  .deck__key {
+    position: relative;
+  }
+
+  /* No 300ms wait-and-see before a tap counts. */
+  .celebration__link,
+  .poem-open,
+  .sheet__close,
+  .discs__day,
+  .deck__key,
+  .deck__mute,
+  .butterfly,
+  .trail__photo {
+    touch-action: manipulation;
+  }
+
+  .celebration__link::after,
+  .poem-open::after,
+  .sheet__close::after,
+  .discs__day::after,
+  .deck__key::after,
+  .butterfly::after,
+  .trail__photo::after {
+    content: '';
+    position: absolute;
+    /* Per-control reach below; this is only the floor. */
+    inset: -4px;
+  }
+
+  /* 26px tall and 130px+ wide, so it is short and not narrow: all the reach
+     it needs is vertical, and reaching sideways would only collide with the
+     link next to it. */
+  .celebration__link::after {
+    inset: -9px 0;
+  }
+
+  /* Wraps to two lines on a phone, and two 44px halos would then overlap
+     across the break. The birthday page scrolls by design, so paying for the
+     clearance in row gap costs nothing here. */
+  .celebration__actions {
+    row-gap: 1.15rem;
+  }
+
+  /* 36px pill in a row whose own gap is 8px - so 4px of reach each way meets
+     the neighbour exactly without ever overlapping it. */
+  .poem-open::after {
+    inset: -4px 0;
+  }
+
+  /* 29px, and the only other thing on its line is the heading. */
+  .sheet__close::after {
+    inset: -8px -6px;
+  }
+
+  /* 24-41px and scattered across the page; the smallest ones sit deepest in
+     the hedge and need the most reach. */
+  .butterfly::after {
+    inset: -10px -7px;
+  }
+
+  /*
+   * 32px circles sitting only 6.4px apart. Reaching the full 44px would
+   * need the row gap opened up too, and that row lives in the music room -
+   * the one screen whose short-landscape layout could not be verified here,
+   * and which is already tight at 360px tall. So the halo stops at 42px
+   * instead: the leftover 0.4px of overlap between neighbours is below the
+   * precision of a fingertip, and no layout moves.
+   */
+  .discs__day::after {
+    inset: -5px;
+  }
+
+  /* Already 40px, so this is a nudge rather than a rescue. */
+  .deck__key::after {
+    inset: -2px;
+  }
+
+  /*
+   * Deliberately the most conservative of the set. These shrink to 24px, so
+   * 44px would need 10px of reach all round - but they are travelling along
+   * the loop and they genuinely overlap each other where the figure crosses
+   * itself, and a halo that big would start swallowing taps meant for the
+   * photograph behind. 7px roughly halves the miss rate without making the
+   * wrong picture open; the carousel is the real way to browse them.
+   */
+  .trail__photo::after {
+    inset: -7px;
+  }
+}
+
+/* ---------- the lyrics drawer ----------------------------------------- */
+
+/*
+ * On a short screen the words come up over the player instead of sitting under
+ * it. See LyricsDrawer.jsx for why this exists at all; the short version is
+ * that the lyric panel's share of a 360px-tall column rounds to nothing, so
+ * below 640px tall it is replaced by this and the button that opens it.
+ */
+
+/* The button that takes the panel's place in the column. Quiet, because it is
+   a way in and not the point of the screen - and full-width-ish so it is an
+   easy thing to hit with a thumb on the screens that get it. */
+.lyrics__peek {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: min(100%, 18rem);
+  margin: 0;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line);
+  background: rgba(255, 255, 255, 0.58);
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--plum-soft);
+  cursor: pointer;
+  transition: color 0.25s ease, background 0.25s ease;
+}
+
+.lyrics__peek:hover:not(:disabled) {
+  color: var(--rose-deep);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.lyrics__peek:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 3px;
+}
+
+/* A song with no words typed up still gets the button, greyed - the absence is
+   information, and a control that vanishes between tracks is worse than one
+   that stays put and says 'nothing here'. */
+.lyrics__peek:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* The backdrop. Same construction as `.sheet`, including the clipping - the
+   panel slides in from translateY(100%) and would otherwise stretch the
+   document and pull the bougainvillea off its own bottom edge. Above the
+   sheet's z-index, since the poem sheet is reachable from the garden and this
+   one only from the player - they never coexist, but the ordering should not
+   depend on that staying true. */
+.drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  background: rgba(92, 58, 74, 0.38);
+  backdrop-filter: blur(2px);
+}
+
+/*
+ * Taller than the poem sheet on purpose. This only ever opens on a screen
+ * under 640px tall, where 82vh would leave a strip of blurred player peeking
+ * out that is too thin to recognise and too thick to ignore. At 92vh the
+ * player is clearly still back there without pretending to be readable.
+ */
+.drawer__panel {
+  width: min(100%, 34rem);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0.6rem clamp(1rem, 4vw, 1.8rem) 1rem;
+  border-radius: 1.4rem 1.4rem 0 0;
+  background: linear-gradient(170deg, #fffaf7 0%, #fdf1f3 100%);
+  border: 1px solid var(--glass-line);
+  border-bottom: 0;
+  box-shadow: 0 -30px 70px -30px rgba(150, 84, 110, 0.55);
+}
+
+.drawer__grip {
+  flex: 0 0 auto;
+  width: 2.4rem;
+  height: 4px;
+  margin: 0 auto 0.7rem;
+  border-radius: 999px;
+  background: rgba(199, 150, 172, 0.5);
+}
+
+.drawer__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid rgba(199, 150, 172, 0.28);
+}
+
+.drawer__title {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  color: var(--plum);
+}
+
+.drawer__artist {
+  font-family: var(--font-script);
+  font-size: 0.95rem;
+  color: var(--rose-deep);
+}
+
+/* The scroller. `min-height: 0` is what lets it shrink inside the flex column
+   instead of pushing the panel past its own max-height. */
+.drawer__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.9rem 0.2rem 0.2rem;
+  text-align: center;
+  scrollbar-width: thin;
+  /* Momentum scrolling, and no rubber-banding the page behind it. */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.drawer__body:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 2px;
+  border-radius: 0.6rem;
+}
+
+/* A landscape phone is short AND wide: one column of centred lines down the
+   middle of 740px wastes most of the panel, so the words run in two. */
+@media (min-width: 620px) and (max-height: 480px) {
+  .drawer__body {
+    columns: 2;
+    column-gap: 2.2rem;
+  }
+
+  /* Without this a verse can break across the fold mid-thought. */
+  .lyrics__break {
+    break-inside: avoid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .drawer__panel {
+    transition: none !important;
   }
 }

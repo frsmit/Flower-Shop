@@ -108,8 +108,8 @@ export default function App() {
   // bougainvillea already had to be rescued from.
   const unlocked = unlockedCount(target, now, poem.length, poemComplete);
 
-  // ---- ten for ten -------------------------------------------------------
-  // The last ten days get a song each, on their own tab. The manifest is
+  // ---- twelve for twelve -------------------------------------------------------
+  // The last twelve days get a song each, on their own tab. The manifest is
   // fetched at runtime and is very often simply absent - no manifest means no
   // music and no tab, which is what every build without the audio looks like.
   const songs = useSongs();
@@ -304,7 +304,7 @@ export default function App() {
                     {songsOpen > 0 ? (
                       <button type="button" className="poem-open" onClick={openMusic}>
                         <span aria-hidden="true">💿</span>
-                        ten for ten
+                        twelve for twelve
                         {sounding && !soundOff ? (
                           <span className="poem-open__count">playing</span>
                         ) : null}

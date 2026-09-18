@@ -181,15 +181,16 @@ looks the same.
   the Express server imports `config.js` directly — which is why `DAY` is
   redeclared there instead of imported from `useCountdown.js`.
 
-## Ten for ten
+## Twelve for twelve
 
-The last ten days get a song each, on their own tab: a disc that turns while it
+The last twelve days get a song each, on their own tab: a disc that turns while it
 plays, the title under it, and the words below that. **It starts muted, every
 single visit.** She opens the tab, the disc turns, nothing makes a sound until
 she taps *tap for sound* — which is both the courtesy and, not coincidentally,
 the tap that browsers require before a page is allowed to make noise at all.
 
-The songs and their lyrics are **gitignored**. Copy the template and fill it in:
+The songs and their lyrics are **committed to this repo**. Copy the template
+and fill it in:
 
 ```bash
 cp public/songs/songs.example.json public/songs/songs.json
@@ -199,10 +200,10 @@ Then drop the audio in next to it, so `public/songs/` looks like:
 
 ```
 public/songs/
-  songs.json            your manifest (gitignored)
-  01-style.mp3          your audio  (gitignored)
+  songs.json            your manifest (committed)
+  01-style.mp3          your audio  (committed)
   01-style.jpg          optional cover art
-  songs.example.json    the committed template
+  songs.example.json    the template it was copied from
 ```
 
 Each entry takes `src` (the only required field), plus optional `title`,
@@ -211,17 +212,68 @@ Each entry takes `src` (the only required field), plus optional `title`,
 lines are kept as verse breaks. Leave `lyrics` out entirely and the sheet says
 so; the player works fine without it.
 
-**The length sets the schedule**, exactly as it does for the poem. Ten entries
-start unlocking ten days out; four entries start four days out. Ten is the cap.
-Unlike the poem, nothing is held back for the birthday — the tenth song lands on
-the final day of the wait, so on the day itself she has all ten to play rather
-than nine and a promise.
+You do not have to fill all of that in by hand. `npm run songs:enrich` asks
+iTunes for cover art and the canonical credit, and LRCLIB for the words, then
+writes what it found back into the manifest — dry by default, `-- --write` to
+apply. It only ever fills blanks, so anything you typed yourself survives and
+it is safe to re-run after adding a song.
+
+It is **fussy on purpose about which sheet it accepts**, because the failure it
+is avoiding is not an empty drawer, it is a confidently wrong one. A candidate
+has to run to the same length as the recording iTunes knows about, and it has
+to agree about the album or else have come back from a search that named a
+performer. Both earn their keep here: LRCLIB's only Saathiya is an Odia song of
+the same name, romanised and two seconds off, and Pritam wrote a Raabta for
+Agent Vinod and another for *Raabta* four seconds apart. It also prefers a
+romanised sheet, so the drawer reads in one script — pass `--any-script` to
+take Devanagari, Gurmukhi or Gujarati where that is all there is. A song it
+cannot place honestly is left blank and gets the empty state.
+
+**Where LRCLIB has a timed sheet it is stored instead of the plain one**, as
+`timed`: an array of LRC lines, `[mm:ss.xx]` and then the words. The player
+lights the line being sung and keeps it in the middle of the sheet, and
+`parseSongs` reads the plain lines back off the timings so the same words are
+never in the file twice. A song with `lyrics` and no `timed` renders exactly as
+it always did, with nothing lit — that is the normal state for a song LRCLIB
+has words but no timings for, and it should not look like a fault. Hand-written
+`lyrics` are never replaced by a timed sheet on a re-run; clear the field first
+if you want the script to go looking.
+
+**The length sets the schedule**, exactly as it does for the poem. Twelve
+entries start unlocking twelve days out; four entries start four days out.
+`SONG_DAYS` in `src/lib/songs.js` is both the cap and the schedule length, and
+`parseSongs` silently `slice`s anything past it - so raise it before adding a
+thirteenth song, or the thirteenth simply will not exist.
+**The set runs backwards, and the birthday is the climax.** Her song 12 arrives
+first, twelve days out; her song 1 arrives on the 27th itself. So the manifest
+is stored in *arrival* order — position 1 is the first to unlock and the last
+position is the birthday's — while the filenames keep her own numbering
+(`01-sajde.mp3` is her song 1, and it sits last in the array on purpose). Get
+that backwards and the whole thing plays in reverse, so the note at the top of
+`songs.json` says it too.
+
+This is also why `songsUnlocked` has no `+1`. With one, the set completed on the
+final day of the *wait* and the birthday added nothing — right for a schedule
+that front-loads, wrong for this one, where the twelfth day is meant to hand her
+the song the other eleven were counting towards.
 
 ### Things worth knowing if you change it
 
-- **Why it is not in the repo.** These are commercial recordings, and on a free
-  GitHub Pages plan the repo serving this page has to be public. The manifest
-  is gitignored along with the audio because it carries the lyrics.
+- **Why it *is* in the repo, and what that costs.** It used to be gitignored:
+  these are commercial recordings, and on a free Pages plan the repo serving
+  this page has to be public, so committing them makes the audio and her lyrics
+  downloadable by anyone who finds the repo. That was traded away deliberately,
+  for CI that can actually deploy the music. The alternatives were a private
+  companion repo fetched with a PAT, GitHub Pro to make this repo private, or
+  building locally and uploading `dist/` by hand. This one needs no PAT, no
+  second repo and no paid plan — and no 48KB Actions-secret cap, which is what
+  would otherwise limit how much lyric text the manifest can carry (Devanagari
+  costs ~99 bytes a line against romanised text's ~44, so ten songs of
+  Hindi-script lyrics will not fit in a secret at all).
+- **Binaries do not delta-compress.** Every replaced mp3 leaves its old blob in
+  history forever. Ten songs is ~118MB; re-encoding them all once makes it
+  ~236MB, and the only way back is a history rewrite. Get the encode right
+  before you commit it.
 - **It is still a public URL.** Gitignoring keeps the files out of your *repo*,
   not out of your *deployment* — anyone with the link can download the audio
   straight from the site, exactly as they can already read the poem in the
@@ -229,15 +281,15 @@ than nine and a promise.
   of days she has not reached yet are readable in devtools: locked days are a
   closed door on the page, not a locked one. Same rule as everywhere else here —
   treat the page as public.
-- **Which means CI cannot deploy it.** The GitHub Actions workflow builds from
-  the repo, and the audio is not in the repo, so a Pages deploy simply has no
-  music — the tab does not appear and nothing breaks. To ship the songs, build
-  locally and upload `dist/` yourself: drag it onto Netlify Drop, or use
-  Cloudflare Pages' direct upload. Both keep the never-sleeps property that
-  makes static hosting the right choice here.
 - **A missing manifest is a normal state, not an error.** No `songs.json` means
-  no songs, no tab, no console noise. That is what every build without the
-  audio looks like, including every CI build.
+  no songs, no tab, no console noise — that is what a fresh clone looks like
+  before you add any.
+- **Which is exactly why `npm run songs:check` exists.** `useSongs` cannot tell
+  a 404 from "no music configured", so a manifest with a typo'd filename, or
+  invalid JSON, does not fail anything: it deploys green and the tab silently
+  never appears. The check runs in CI ahead of the build and turns both into a
+  red build. Run it before you push. A missing `cover` only warns — the disc
+  falls back to a plain blush face.
 - **The `<audio>` element lives in `App`, not in the player.** The view unmounts
   every time she goes back to the garden, and an `<audio>` that unmounts stops
   playing. Hoisting it is what lets the song carry on underneath the countdown,
@@ -250,6 +302,21 @@ than nine and a promise.
 - **The tab is a URL fragment** (`#/music`), not a path. There is no server on a
   static host to rewrite `/music` back to `index.html`, so a real route would
   404 on refresh. The fragment survives reload and makes the back button work.
+- **The scrubber is a branch of cherry blossom that opens as the song plays**
+  (`BlossomScrub.jsx`), and the range input is still underneath it. The drawing
+  is `aria-hidden` and inert; the real `<input type="range">` sits on top of it
+  at full size with `opacity: 0`, so dragging, arrow keys, Home/End, the label
+  and the disabled state are all still the browser's. A decorative SVG is no
+  place to reimplement a slider badly.
+- **Its geometry is a function, not a measurement.** Every point is derived from
+  one number, `t` along the branch — no `getPointAtLength`, no layout read, no
+  resize listener. The outline, the nine blossom placements and the petal ring
+  are computed once at module load, and after that a frame costs one transform
+  and a clip width. Responsiveness is the `viewBox`: one `width: 100%` and it
+  scales exactly at any size, with no breakpoints and no second code path for
+  narrow screens. On a phone the branch is only ~40px tall, so the invisible
+  slider is allowed to be taller than the picture — which is why
+  `.deck__transport` is positioned, so the play button stays above it.
 - **The disc spins only while sound is actually being produced**, so it is the
   honest answer to "is this playing?" — which matters when the answer is "yes,
   but muted". It animates `transform` only, so it composites instead of
@@ -541,7 +608,7 @@ src/lib/timeTravel.js the ?at= preview clock
 src/lib/songs.js      the ten-for-ten schedule and manifest parsing
 src/lib/flowers.js    six species, and the bed they come up in
 src/lib/photos.js     manifest parsing for the photographs
-public/songs/         the audio and songs.json (both gitignored)
+public/songs/         the audio and songs.json (both committed)
 public/photos/        the images and photos.json (both gitignored)
 src/lib/poem.js       the poem, and which of it she has earned yet
 scripts/make-key.mjs  npm run key -- "phrase"

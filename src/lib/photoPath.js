@@ -32,23 +32,47 @@ const RAD = Math.PI / 180;
  * `from` and `sweep` are chosen for their TANGENTS, not for where they put the
  * ends. The path is travelled continuously and each photograph is turned to
  * face along it, so a corner at a join is not a cosmetic flaw - it is a
- * photograph visibly snapping round as it crosses one. At 225 degrees the
- * curve is heading up and to the right, which is the direction the tail
- * arrives in; 405 degrees later it is at the top of the circle heading due
- * right, which is the direction the tail leaves in. The extra 45 over a full
- * turn is what makes it a loop that crosses itself instead of a bend.
+ * photograph visibly snapping round as it crosses one.
+ *
+ * The curl goes OVER the stream rather than under it. A negative sweep is
+ * travelled anticlockwise on screen, which puts the circle above the line the
+ * photographs arrive on: one lifts as it reaches the loop, carries over the
+ * top, and comes back down to rejoin the stream where it left it. Clockwise -
+ * the way this used to run - hung the circle underneath instead, so a
+ * photograph sagged below its own trail and the whole figure read as a dip
+ * rather than a flourish.
+ *
+ * At 45 degrees the curve is heading up and to the right, which is the
+ * direction the tail arrives in; 315 degrees of anticlockwise travel later it
+ * is at the bottom of the circle heading due right, which is the direction the
+ * tail leaves in.
+ *
+ * 315 and not 675: an upward curl reaches its exit tangent most of the way
+ * round, so adding a full turn to force a self-crossing put over half the
+ * path length onto the circle and the photographs bunched into a clock face
+ * instead of streaming past. The 45 degrees of arc left untravelled sits
+ * between the entry and the exit, which is where the two tails cross - so the
+ * figure still closes on itself, just once rather than twice.
  */
-const LOOP = { cx: 520, cy: 250, r: 116, from: 225, sweep: 405 };
+const LOOP = { cx: 520, cy: 250, r: 116, from: 45, sweep: -315 };
 
 const pointAt = (a) => [LOOP.cx + LOOP.r * Math.cos(a * RAD), LOOP.cy + LOOP.r * Math.sin(a * RAD)];
-// Unit tangent, in the direction of travel (increasing angle, which is
-// clockwise on screen because y grows downward).
+// Unit tangent for INCREASING angle, which is clockwise on screen because y
+// grows downward.
 const tangentAt = (a) => [-Math.sin(a * RAD), Math.cos(a * RAD)];
 
+// Which way the arc is actually travelled. Everything that has to point along
+// the path goes through `forwardAt` rather than `tangentAt`, so flipping the
+// curl is a sign change on `sweep` and nothing else: get this wrong and the
+// tails join the loop pointing backwards, which is a photograph spinning
+// through 180 degrees at each seam.
+const DIR = Math.sign(LOOP.sweep);
+const forwardAt = (a) => tangentAt(a).map((v) => v * DIR);
+
 const ENTRY = pointAt(LOOP.from);
-const ENTRY_T = tangentAt(LOOP.from);
+const ENTRY_T = forwardAt(LOOP.from);
 const EXIT = pointAt(LOOP.from + LOOP.sweep);
-const EXIT_T = tangentAt(LOOP.from + LOOP.sweep);
+const EXIT_T = forwardAt(LOOP.from + LOOP.sweep);
 
 // Where the stream comes from and where it goes, both off the visible box.
 const START = [-210, 458];

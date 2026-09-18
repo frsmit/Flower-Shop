@@ -29,6 +29,15 @@ jobs:
 
       - run: npm ci
 
+      # Ten for ten. The audio and the manifest are committed (see .gitignore),
+      # so CI has them and this is only a guard - but a load-bearing one.
+      #
+      # useSongs cannot tell a 404 from "no music configured", because the
+      # second is a real state that every clone is in. So a manifest naming a
+      # file that isn't here does not fail the build: it deploys green and the
+      # music tab silently never appears. This turns that into a red build.
+      - run: npm run songs:check
+
       # Set these under Settings -> Secrets and variables -> Actions.
       # Anything missing falls back to the neutral defaults in src/config.js.
       #

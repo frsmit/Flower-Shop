@@ -28,11 +28,14 @@ dist-ssr
 *.sln
 *.sw?
 
-# Ten for ten. The audio is commercial recordings and the manifest carries her
-# lyrics - neither belongs in a repo that has to be public for Pages to serve
-# it. songs.example.json is the committed template.
-public/songs/*
-!public/songs/songs.example.json
+# Ten for ten. Deliberately NOT ignored: the audio and the manifest are
+# committed, so that CI can build a deploy with the music in it. That is a
+# considered trade - this repo is public for free Pages, so the recordings and
+# her lyrics are downloadable by anyone who finds it. Chosen over a private
+# companion repo because it needs no PAT, no second repo and no 48KB secret,
+# and it lifts the cap on how much lyric text the manifest can carry.
+#
+# public/photos/ below is a different matter and stays ignored - see the note.
 
 # The photographs, for the same two reasons: they are pictures of her, and the
 # repo has to be public. photos.example.json is the committed template.

@@ -12,7 +12,9 @@
     "serve": "npm run build && node --env-file-if-exists=.env server/index.js",
     "lint": "oxlint",
     "preview": "vite preview",
-    "key": "node scripts/make-key.mjs"
+    "key": "node scripts/make-key.mjs",
+    "songs:check": "node scripts/check-songs.mjs",
+    "songs:enrich": "node scripts/enrich-songs.mjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

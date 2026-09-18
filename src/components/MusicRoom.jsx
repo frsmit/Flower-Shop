@@ -1,13 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { dayOfSong } from '../lib/songs.js';
 import useReducedMotion from '../hooks/useReducedMotion.js';
+import useMediaQuery from '../hooks/useMediaQuery.js';
+import LyricsDrawer from './LyricsDrawer.jsx';
+import LyricLines from './LyricLines.jsx';
+import BlossomScrub from './BlossomScrub.jsx';
 
 /**
- * Ten for ten: the last ten days of the wait, one song each, on their own tab.
+ * When the lyrics stop fitting in the column and become a drawer instead.
+ *
+ * The same 640px the stylesheet already uses to start shrinking this view, so
+ * the two agree by construction: below it the CSS was squeezing the lyric
+ * panel towards nothing, and now the panel simply isn't rendered there.
+ */
+const CRAMPED = '(max-height: 640px)';
+
+/**
+ * Twelve for twelve: the last twelve days of the wait, one song each, on their
+ * own tab.
  *
  * A disc, a transport row and a lyric sheet under it - a record player and not
- * a playlist, because a list of ten filenames is a folder, and the point of
+ * a playlist, because a list of twelve filenames is a folder, and the point of
  * giving it its own tab was that it should feel like somewhere she went rather
  * than something the countdown grew.
  *
@@ -25,6 +39,26 @@ function formatTime(seconds) {
 export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
   const { getAudio, index, song, playing, muted, blocked, toggle, toggleMuted, select } = jukebox;
   const reduced = useReducedMotion();
+  const cramped = useMediaQuery(CRAMPED);
+  const [lyricsOpen, setLyricsOpen] = useState(false);
+  const openLyrics = useCallback(() => setLyricsOpen(true), []);
+  const closeLyrics = useCallback(() => setLyricsOpen(false), []);
+
+  /*
+   * Forget an open drawer whenever the layout crosses the breakpoint.
+   *
+   * The render below is already guarded on `cramped`, so nothing is shown
+   * twice without this - but the flag would survive a trip up past 640px and
+   * back, and the drawer would then be open again on arrival without her
+   * having asked. Adjusted during render rather than in an effect: this is
+   * derived from a value that changed, not a subscription to anything, and
+   * React re-runs the component before committing, so no extra paint.
+   */
+  const [wasCramped, setWasCramped] = useState(cramped);
+  if (wasCramped !== cramped) {
+    setWasCramped(cramped);
+    setLyricsOpen(false);
+  }
 
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -66,6 +100,14 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
     [getAudio],
   );
 
+  const startScrub = useCallback(() => {
+    scrubbing.current = true;
+  }, []);
+
+  const endScrub = useCallback(() => {
+    scrubbing.current = false;
+  }, []);
+
   const step = useCallback(
     (delta) => {
       if (!unlocked) return;
@@ -77,6 +119,7 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
   );
 
   const lyrics = song?.lyrics ?? [];
+  const timed = song?.timed ?? [];
   // Not memoised: a dozen-odd string trims over one song's worth of lines is
   // cheaper than the dependency array needed to skip them, and `lyrics` is a
   // fresh array on every render anyway, so a memo here would never hit.
@@ -89,14 +132,14 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 12 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      aria-label="Ten for ten"
+      aria-label="Twelve for twelve"
     >
       <header className="music__head">
         <button type="button" className="music__back" onClick={onBack}>
           <span aria-hidden="true">&larr;</span> the garden
         </button>
         <p className="music__eyebrow">
-          <span aria-hidden="true">💿</span> ten for ten
+          <span aria-hidden="true">💿</span> twelve for twelve
         </p>
         <p className="music__count">
           {unlocked} of {songs.length}
@@ -113,7 +156,7 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
             // Keyed by position, not by `src`. A day's identity here IS its
             // index - `dayOfSong(i)` is the whole numbering - and two entries
             // are allowed to point at the same file, which the bundled test
-            // manifest does on purpose. Keyed by src, ten songs collapsed to
+            // manifest did on purpose. Keyed by src, ten songs collapsed to
             // two keys and React warned on every render of the list.
             <li key={i}>
               <button
@@ -161,22 +204,14 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
 
         <div className="deck__scrub">
           <span className="deck__time">{formatTime(elapsed)}</span>
-          <input
-            className="deck__range"
-            type="range"
-            min={0}
-            max={duration || 0}
-            step={0.5}
-            value={Math.min(elapsed, duration || 0)}
-            onChange={seek}
-            onPointerDown={() => {
-              scrubbing.current = true;
-            }}
-            onPointerUp={() => {
-              scrubbing.current = false;
-            }}
+          <BlossomScrub
+            elapsed={elapsed}
+            duration={duration}
+            playing={playing}
             disabled={!song || !duration}
-            aria-label="Position in the song"
+            onSeek={seek}
+            onScrubStart={startScrub}
+            onScrubEnd={endScrub}
           />
           <span className="deck__time">{formatTime(duration)}</span>
         </div>
@@ -233,23 +268,49 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
         ) : null}
       </div>
 
-      <div className="lyrics">
-        {hasLyrics ? (
-          <div className="lyrics__sheet" tabIndex={0} aria-label="Lyrics">
-            {lyrics.map((line, i) =>
-              line.trim() === '' ? (
-                <span key={i} className="lyrics__break" aria-hidden="true" />
-              ) : (
-                <p key={i} className="lyrics__line">
-                  {line}
-                </p>
-              ),
-            )}
-          </div>
-        ) : (
-          <p className="lyrics__empty">no words typed up for this one yet &mdash; just the song</p>
-        )}
-      </div>
+      {/*
+        Either a panel in the column or a drawer over it - never both, and
+        never one of them merely hidden. Two copies of the same words would
+        both be in the accessibility tree, and a screen reader would happily
+        read the one nobody can see.
+      */}
+      {cramped ? (
+        <button
+          type="button"
+          className="lyrics__peek"
+          onClick={openLyrics}
+          disabled={!hasLyrics}
+          aria-haspopup="dialog"
+          aria-expanded={lyricsOpen}
+        >
+          <span aria-hidden="true">↑</span>{' '}
+          {hasLyrics ? 'the words' : 'no words for this one'}
+        </button>
+      ) : (
+        <div className="lyrics">
+          {hasLyrics ? (
+            <div className="lyrics__sheet" tabIndex={0} aria-label="Lyrics">
+              <LyricLines lines={lyrics} timed={timed} elapsed={elapsed} />
+            </div>
+          ) : (
+            <p className="lyrics__empty">no words typed up for this one yet &mdash; just the song</p>
+          )}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {cramped && lyricsOpen && hasLyrics ? (
+          <LyricsDrawer
+            key="lyrics"
+            title={song?.title ?? 'this one'}
+            artist={song?.artist ?? ''}
+            lines={lyrics}
+            timed={timed}
+            elapsed={elapsed}
+            onClose={closeLyrics}
+          />
+        ) : null}
+      </AnimatePresence>
     </motion.section>
   );
 }
