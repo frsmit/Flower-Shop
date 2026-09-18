@@ -47,7 +47,7 @@ function formatTime(seconds) {
 }
 
 export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
-  const { getAudio, index, song, playing, muted, blocked, toggle, toggleMuted, select } = jukebox;
+  const { getAudio, index, song, playing, loading, muted, blocked, toggle, toggleMuted, select } = jukebox;
   const reduced = useReducedMotion();
   const cramped = useMediaQuery(CRAMPED);
   const [lyricsOpen, setLyricsOpen] = useState(false);
@@ -264,14 +264,19 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
             <span aria-hidden="true">&#9664;&#9664;</span>
           </button>
 
+          {/* Three states, because there are three. Left at two, the button
+              claims sound during the seconds a ten-megabyte song takes to
+              arrive, and pressing it then only stops a download. It stays
+              enabled while loading so she can change her mind. */}
           <button
             type="button"
-            className="deck__key deck__key--main"
+            className={`deck__key deck__key--main ${loading ? 'deck__key--loading' : ''}`}
             onClick={toggle}
             disabled={!song}
-            aria-label={playing ? 'Pause' : 'Play'}
+            aria-label={loading ? 'Loading' : playing ? 'Pause' : 'Play'}
+            aria-busy={loading || undefined}
           >
-            <span aria-hidden="true">{playing ? '❚❚' : '▶'}</span>
+            <span aria-hidden="true">{loading ? '◍' : playing ? '❚❚' : '▶'}</span>
           </button>
 
           <button

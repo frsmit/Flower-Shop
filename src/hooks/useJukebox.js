@@ -35,10 +35,18 @@ export function useJukebox(songs) {
     }
   });
   const [playing, setPlaying] = useState(false);
+  // Between asking for a song and hearing it. These files are 320kbps and
+  // average eleven megabytes, so on anything but a fast connection that gap is
+  // seconds long and sometimes much worse - long enough that a player which
+  // does not admit to it looks broken.
+  const [loading, setLoading] = useState(false);
   const [muted, setMuted] = useState(true);
   // Set when the browser refuses playback, so the view can ask for a tap
   // instead of silently doing nothing.
   const [blocked, setBlocked] = useState(false);
+  // Whether sound should follow her to the next song. A ref, not state: it is
+  // read once by the effect that starts playback and must not cause a render.
+  const wantsSound = useRef(false);
 
   /**
    * Clamped here rather than corrected in an effect. The manifest arrives after
@@ -63,27 +71,48 @@ export function useJukebox(songs) {
     }
   }, [safeIndex]);
 
-  // The element is the source of truth for whether sound is coming out; these
-  // just keep React's copy honest, including when something outside our
-  // controls changes it (media keys, the OS, a headphone unplug).
+  /*
+   * The element is the source of truth for whether sound is coming out; these
+   * keep React's copy honest, including when something outside our controls
+   * changes it (media keys, the OS, a headphone unplug).
+   *
+   * Driven by `playing` and not `play`, which is the whole bug this once had.
+   * `play` fires the instant play() is *called* - before a single byte has
+   * arrived - so switching to an eleven-megabyte song flipped the button
+   * straight to a pause icon and then sat there silent while it buffered. The
+   * button was claiming sound that would not exist for another half a minute,
+   * and pressing it only paused a download. `playing` fires when audio is
+   * actually being produced, which is the thing the button is supposed to mean.
+   */
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onPlay = () => {
+    const onPlaying = () => {
       setPlaying(true);
+      setLoading(false);
       setBlocked(false);
     };
-    const onPause = () => setPlaying(false);
+    // Ran out of buffer mid-song, or is fetching the start of a new one.
+    const onWaiting = () => setLoading(true);
+    const onCanPlay = () => setLoading(false);
+    const onPause = () => {
+      setPlaying(false);
+      setLoading(false);
+    };
     const onVolume = () => setMuted(audio.muted);
 
-    audio.addEventListener('play', onPlay);
+    audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('waiting', onWaiting);
+    audio.addEventListener('canplay', onCanPlay);
     audio.addEventListener('pause', onPause);
     audio.addEventListener('ended', onPause);
     audio.addEventListener('volumechange', onVolume);
 
     return () => {
-      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('playing', onPlaying);
+      audio.removeEventListener('waiting', onWaiting);
+      audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('ended', onPause);
       audio.removeEventListener('volumechange', onVolume);
@@ -104,7 +133,17 @@ export function useJukebox(songs) {
   const play = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.play().catch(() => setBlocked(true));
+
+    setLoading(true);
+    audio.play().catch((error) => {
+      setLoading(false);
+      // Changing song while a play() is still in flight rejects the old one
+      // with AbortError. That is this code doing its job, not the browser
+      // refusing sound, and treating it as a refusal put a "tap play" notice
+      // on screen every time she skipped a track.
+      if (error?.name === 'AbortError') return;
+      setBlocked(true);
+    });
   }, []);
 
   const toggle = useCallback(() => {
@@ -130,19 +169,41 @@ export function useJukebox(songs) {
     if (!next && audio.paused) play();
   }, [play]);
 
-  /** Switching songs keeps whatever she had chosen about sound. */
-  const select = useCallback(
-    (next) => {
-      setIndex(next);
-      const audio = audioRef.current;
-      if (!audio) return;
-      // The src swap is driven by render; wait for it before asking to play.
-      requestAnimationFrame(() => {
-        if (!audio.muted || !audio.paused) play();
-      });
-    },
-    [play],
-  );
+  /**
+   * Switching songs carries her intent about sound, and nothing else.
+   *
+   * What it must NOT carry is the appearance of playing. The old version
+   * called play() from inside a requestAnimationFrame, guessing that one frame
+   * was long enough for React to have swapped the src - which is a race on a
+   * good day, and does not fire at all in a background tab. Worse, it left
+   * `playing` true across the swap, so the button showed pause for a song that
+   * had not started and could not be started by pressing it.
+   *
+   * So: remember whether sound was wanted, say plainly that nothing is playing
+   * yet, and let the effect below start the new song once its source is
+   * actually attached.
+   */
+  const select = useCallback((next) => {
+    const audio = audioRef.current;
+    wantsSound.current = Boolean(audio && (!audio.paused || !audio.muted));
+    setPlaying(false);
+    setBlocked(false);
+    setIndex(next);
+  }, []);
+
+  /*
+   * Start the new song once its source is on the element.
+   *
+   * Keyed on the src rather than on a timer: this runs after React has
+   * committed the swap, which is the thing the old rAF was trying to guess at.
+   */
+  const src = song?.src ?? null;
+
+  useEffect(() => {
+    if (!wantsSound.current || !src) return;
+    wantsSound.current = false;
+    play();
+  }, [src, play]);
 
   return useMemo(
     () => ({
@@ -151,13 +212,14 @@ export function useJukebox(songs) {
       index: safeIndex,
       song,
       playing,
+      loading,
       muted,
       blocked,
       toggle,
       toggleMuted,
       select,
     }),
-    [attach, getAudio, safeIndex, song, playing, muted, blocked, toggle, toggleMuted, select],
+    [attach, getAudio, safeIndex, song, playing, loading, muted, blocked, toggle, toggleMuted, select],
   );
 }
 

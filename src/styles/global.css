@@ -3473,3 +3473,23 @@ body {
     transition: none;
   }
 }
+
+/* Turning while the song is on its way. The glyph is a ring, so a slow spin
+   reads as "fetching" without needing a second element or an SVG. */
+.deck__key--loading span {
+  display: inline-block;
+  animation: deck-loading 1.1s linear infinite;
+}
+
+@keyframes deck-loading {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck__key--loading span {
+    animation: none;
+    opacity: 0.6;
+  }
+}
