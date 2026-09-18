@@ -81,11 +81,19 @@ body {
     linear-gradient(168deg, #fdf6f2 0%, #fbeef1 42%, #f7eef8 100%);
 }
 
+/* No `filter: blur()` here, deliberately, and it is the single biggest thing
+   keeping this page smooth.
+
+   These are two ~46vmax circles that drift continuously, and they were being
+   blurred by 90px on every frame - half a megapixel each, re-blurred sixty
+   times a second, underneath everything else. The catch is that the fill is
+   already a radial gradient fading to transparent, so the blur was buying
+   almost nothing visually: softening a soft edge. The gradient stops below do
+   the same job for free, and the drift is now a pure compositor transform. */
 .app__glow {
   position: fixed;
   z-index: -2;
   border-radius: 50%;
-  filter: blur(90px);
   opacity: 0.55;
   pointer-events: none;
   animation: drift 22s ease-in-out infinite alternate;
@@ -97,7 +105,17 @@ body {
   height: 46vmax;
   top: -14vmax;
   left: -10vmax;
-  background: radial-gradient(circle, rgba(247, 169, 192, 0.6), rgba(247, 169, 192, 0));
+  /* The extra stops are the blur, baked in: a straight two-stop gradient falls
+     off linearly and reads as a disc with an edge, which is exactly what the
+     90px blur used to hide. */
+  background: radial-gradient(
+    circle,
+    rgba(247, 169, 192, 0.6) 0%,
+    rgba(247, 169, 192, 0.44) 26%,
+    rgba(247, 169, 192, 0.22) 50%,
+    rgba(247, 169, 192, 0.07) 74%,
+    rgba(247, 169, 192, 0) 100%
+  );
 }
 
 .app__glow--two {
@@ -105,7 +123,14 @@ body {
   height: 40vmax;
   right: -12vmax;
   top: 22vmax;
-  background: radial-gradient(circle, rgba(210, 173, 240, 0.55), rgba(210, 173, 240, 0));
+  background: radial-gradient(
+    circle,
+    rgba(210, 173, 240, 0.55) 0%,
+    rgba(210, 173, 240, 0.4) 26%,
+    rgba(210, 173, 240, 0.2) 50%,
+    rgba(210, 173, 240, 0.06) 74%,
+    rgba(210, 173, 240, 0) 100%
+  );
   animation-delay: -8s;
   animation-duration: 28s;
 }
@@ -730,7 +755,11 @@ body {
 
 /* The plant sits in its own fixed layer that covers the viewport. It's placed
    before the content in the DOM, so the text always paints over it. */
+/* Its own paint container. The hedge is ~2000 static nodes that never move;
+   without this, anything repainting above it can drag the whole subtree into
+   the same paint pass. */
 .vines {
+  contain: paint;
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -1925,9 +1954,128 @@ body {
 /* Transform-only rotation, so it composites instead of repainting. The petal
    canvas behind is already redrawing at 30fps; a disc that triggered paint
    every frame would be competing with it for the same thread. */
+/* ---- the deck, from above ------------------------------------------------
+   A plinth, a platter and an arm, under the record that was already here. The
+   page is a garden and a record player is the one machine that belongs in one:
+   it is the only way of playing music that looks like an object rather than a
+   screen.
+
+   All of it is flat colour and gradients - no images, no filters, no shadows
+   that have to be recomputed - because it sits directly under a spinning
+   element and anything expensive here is paid for on every frame of the spin. */
+.turntable {
+  --disc: clamp(8rem, 22vh, 12rem);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--disc) + 4.6rem);
+  padding: 1.5rem 1.5rem 2.1rem;
+  border-radius: 1rem;
+  background:
+    /* grain */
+    repeating-linear-gradient(
+      94deg,
+      rgba(58, 30, 16, 0.07) 0 2px,
+      rgba(255, 226, 196, 0.05) 2px 5px
+    ),
+    linear-gradient(152deg, #8a5a36 0%, #6f4425 44%, #59341c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 224, 196, 0.34),
+    inset 0 -2px 6px rgba(32, 14, 6, 0.5),
+    0 12px 22px -14px rgba(52, 24, 10, 0.75);
+}
+
+/* The recess the record sits in. */
+.turntable__platter {
+  display: grid;
+  place-items: center;
+  width: calc(var(--disc) + 1rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #3a3133 0%, #241d1f 68%, #191315 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 224, 196, 0.16),
+    inset 0 3px 10px rgba(0, 0, 0, 0.55);
+}
+
+/* Two controls that do nothing, and are the whole reason it reads as vintage
+   rather than as a circle on a rectangle. */
+.turntable__knob {
+  position: absolute;
+  bottom: 0.62rem;
+  width: 0.78rem;
+  height: 0.78rem;
+  border-radius: 50%;
+  background: linear-gradient(150deg, #efe3d4, #a98e75);
+  box-shadow:
+    inset 0 -1px 2px rgba(60, 32, 14, 0.5),
+    0 1px 2px rgba(30, 14, 6, 0.5);
+}
+
+.turntable__knob--one {
+  left: 1.1rem;
+}
+
+.turntable__knob--two {
+  left: 2.35rem;
+}
+
+/* The arm. Anchored at its pivot in the top-right corner and rotated about it,
+   so one custom property drives the whole thing. */
+.tonearm {
+  --track: -30deg;
+  position: absolute;
+  top: 1.15rem;
+  right: 1.15rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  transform: rotate(var(--track));
+  transform-origin: center;
+  transition: transform 1.1s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+.tonearm__pivot {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(150deg, #f2ece6, #9c938c);
+  box-shadow: 0 1px 3px rgba(26, 12, 5, 0.55);
+}
+
+/* Reaches down and to the left, towards the middle of the platter. */
+.tonearm__arm {
+  position: absolute;
+  top: 50%;
+  right: 50%;
+  width: calc(var(--disc) * 0.62);
+  height: 0.2rem;
+  transform: translateY(-50%) rotate(-46deg);
+  transform-origin: right center;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f4efe9, #b3aaa3 60%, #8d847d);
+}
+
+.tonearm__head {
+  position: absolute;
+  top: 50%;
+  right: 50%;
+  width: 0.62rem;
+  height: 0.42rem;
+  transform: translateY(-50%) rotate(-46deg) translateX(calc(var(--disc) * -0.62 + 0.1rem));
+  transform-origin: right center;
+  border-radius: 0.1rem;
+  background: linear-gradient(160deg, #4a4143, #2b2426);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tonearm {
+    transition: none;
+  }
+}
+
 .disc {
   position: relative;
-  width: clamp(8rem, 22vh, 12rem);
+  width: var(--disc, clamp(8rem, 22vh, 12rem));
   aspect-ratio: 1;
   border-radius: 50%;
   background:
@@ -2107,20 +2255,14 @@ body {
   cursor: default;
 }
 
-.scrub__bark {
-  fill: rgba(150, 110, 125, 0.28);
+/* Bare wood: what the branch looks like before the song reaches it. Grey and
+   a touch cool, so the warm copy over the top reads as colour arriving. */
+.scrub__wood path {
+  fill: rgba(146, 126, 136, 0.34);
 }
 
-/* The stretch of bough already played, clipped to the playhead. */
-.scrub__bark--lit {
-  fill: rgba(140, 96, 116, 0.6);
-  transition: none;
-}
-
-.scrub__twig {
-  stroke: rgba(150, 110, 125, 0.34);
-  stroke-width: 2.4;
-  stroke-linecap: round;
+.scrub__wood--warm path {
+  fill: rgba(122, 82, 68, 0.72);
 }
 
 .scrub__petal {
@@ -2132,38 +2274,38 @@ body {
 }
 
 /* Shut until the song reaches it: a small dull bud that opens on the way past.
-   `transform-box: fill-box` makes the scale happen about the flower's own
-   middle rather than the corner of the whole drawing. */
+   `transform-box: fill-box` scales it about its own middle rather than the
+   corner of the whole drawing. */
 .scrub__bud {
   transform-box: fill-box;
   transform-origin: center;
-  opacity: 0.5;
-  transition: opacity 0.5s ease;
-}
-
-.scrub__bud use {
-  transform-box: fill-box;
-  transform-origin: center;
-  scale: 0.5;
-  transition: scale 0.55s cubic-bezier(0.22, 1.2, 0.36, 1);
+  opacity: 0.32;
+  scale: 0.34;
+  transition: opacity 0.6s ease, scale 0.6s cubic-bezier(0.22, 1.2, 0.36, 1);
 }
 
 .scrub__bud--open {
   opacity: 1;
-}
-
-.scrub__bud--open use {
   scale: 1;
 }
 
-/* Where the song is. Translated in CSS rather than by attribute so the step
-   between two `timeupdate`s glides instead of jumping. */
+/* The unopened tips. These never become flowers - they are what is still to
+   come, and they stay on the branch once the song has passed them. */
+.scrub__budtip {
+  fill: rgba(190, 140, 158, 0.5);
+  transition: fill 0.6s ease;
+}
+
+.scrub__budtip--open {
+  fill: var(--rose);
+}
+
 .scrub__head {
   transition: transform 0.24s linear;
 }
 
 .scrub__halo {
-  fill: rgba(231, 139, 168, 0.22);
+  fill: rgba(231, 139, 168, 0.16);
 }
 
 .scrub__turn {
@@ -2328,36 +2470,39 @@ body {
   color: var(--plum);
 }
 
-/* Where a song came with timings, the line being sung is lit and the rest step
-   back. Only the seven songs LRCLIB had an LRC for get these classes at all -
-   the other five render as they always did, rather than sitting uniformly
-   dimmed waiting for a highlight that is never coming.
+/* Where a song came with timings, the words arrive as it reaches them.
 
-   The dimming is deliberately shallow. This is a sheet she is reading, not a
-   karaoke screen, and the lines she has just heard are the ones she is most
-   likely to want to look back at. */
-.lyrics__line--on,
-.lyrics__line--off {
-  transition: color 0.35s ease, opacity 0.35s ease;
+   Lines already sung are left as ordinary text on purpose - they are the ones
+   she is most likely to read back, and dimming them to flatter the current
+   line would punish exactly that. Only the line being sung is marked, and only
+   the words still ahead are held back.
+
+   Those keep their box while they wait - opacity, not display - so nothing
+   reflows under the scroller as each line lands. */
+.lyrics__line--now,
+.lyrics__line--sung,
+.lyrics__line--ahead {
+  transition: opacity 0.45s ease, transform 0.45s ease, color 0.3s ease;
 }
 
-.lyrics__line--off {
-  color: var(--plum-soft);
-  opacity: 0.6;
+.lyrics__line--ahead {
+  opacity: 0;
+  transform: translateY(0.35em);
 }
 
-.lyrics__line--on {
-  color: var(--rose-deep);
+.lyrics__line--sung {
   opacity: 1;
-  font-weight: 600;
 }
 
-/* The scroll is smooth-scrolled from JS and the colour fades; with reduced
-   motion both become instant. `scroll-behavior` is set here rather than passed
-   as a behavior option so it also covers a jump she causes herself. */
+.lyrics__line--now {
+  opacity: 1;
+  color: var(--rose-deep);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .lyrics__line--on,
-  .lyrics__line--off {
+  .lyrics__line--now,
+  .lyrics__line--sung,
+  .lyrics__line--ahead {
     transition: none;
   }
 
@@ -3165,5 +3310,67 @@ body {
   .drawer,
   .drawer__panel {
     transition: none !important;
+  }
+}
+
+/* ---- hold still ---------------------------------------------------------
+   One switch, mirrored onto <html> by src/lib/stillness.js, that stops the
+   whole page moving.
+
+   `animation-play-state` rather than `animation: none`: pausing freezes each
+   animation where it stands, so the hedge keeps the lean it had and the petals
+   stay where they fell. Cancelling would snap everything back to its first
+   frame, which looks like a glitch rather than a decision.
+
+   The JS-driven motion - the petal canvas, the framer transitions, the lyric
+   scroll - is not covered by this rule and does not need to be: it all reads
+   the same flag through useReducedMotion. */
+[data-still='true'] *,
+[data-still='true'] *::before,
+[data-still='true'] *::after {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+.stillness {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.72rem;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--plum-soft);
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+}
+
+.stillness:hover {
+  color: var(--rose-deep);
+}
+
+.stillness:focus-visible {
+  outline: 2px solid var(--rose-deep);
+  outline-offset: 3px;
+}
+
+.stillness--held {
+  color: var(--rose-deep);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+/* On a phone the label is the first thing that can go - the glyph already says
+   it, and the accessible name is on the button either way. */
+@media (max-width: 30rem) {
+  .stillness__word {
+    display: none;
   }
 }

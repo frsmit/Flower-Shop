@@ -16,6 +16,16 @@ import BlossomScrub from './BlossomScrub.jsx';
  */
 const CRAMPED = '(max-height: 640px)';
 
+/* Where the arm sits when nothing is playing: swung clear of the record, the
+   way one is left between sides. */
+const ARM_PARKED = '34deg';
+
+/* Where the needle lands, and where it has reached by the end. A real arm
+   travels only a few degrees across a whole side, and overstating it read as
+   the arm sweeping the record rather than tracking it. */
+const ARM_START = 0;
+const ARM_END = 15;
+
 /**
  * Twelve for twelve: the last twelve days of the wait, one song each, on their
  * own tab.
@@ -118,6 +128,11 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
     [index, unlocked, select],
   );
 
+  // The arm follows the playhead, so it is telling the same truth as the
+  // branch below it.
+  const through = duration > 0 ? Math.min(1, Math.max(0, elapsed / duration)) : 0;
+  const armAngle = `${(ARM_START + (ARM_END - ARM_START) * through).toFixed(2)}deg`;
+
   const lyrics = song?.lyrics ?? [];
   const timed = song?.timed ?? [];
   // Not memoised: a dozen-odd string trims over one song's worth of lines is
@@ -180,20 +195,42 @@ export default function MusicRoom({ songs, unlocked, jukebox, onBack }) {
       </ol>
 
       <div className="deck">
-        {/* The disc spins only while sound is actually being produced, so it
-            doubles as the honest answer to 'is this playing?' - which matters
-            when the answer is 'yes, but muted'. */}
-        <div
-          className={`disc ${playing ? 'disc--spinning' : ''} ${reduced ? 'disc--still' : ''}`}
-          aria-hidden="true"
-        >
-          {song?.cover ? (
-            <img className="disc__art" src={song.cover} alt="" />
-          ) : (
-            <div className="disc__art disc__art--blank" />
-          )}
-          <div className="disc__sheen" />
-          <div className="disc__hub" />
+        {/* A deck, seen from above: plinth, platter, and an arm that comes
+            down when the needle drops. Entirely decoration - every control is
+            the row of buttons below - so the whole thing is hidden from
+            assistive tech rather than described. */}
+        <div className="turntable" aria-hidden="true">
+          <span className="turntable__knob turntable__knob--one" />
+          <span className="turntable__knob turntable__knob--two" />
+
+          <div className="turntable__platter">
+            {/* The disc spins only while sound is actually being produced, so
+                it doubles as the honest answer to 'is this playing?' - which
+                matters when the answer is 'yes, but muted'. */}
+            <div className={`disc ${playing ? 'disc--spinning' : ''} ${reduced ? 'disc--still' : ''}`}>
+              {song?.cover ? (
+                <img className="disc__art" src={song.cover} alt="" />
+              ) : (
+                <div className="disc__art disc__art--blank" />
+              )}
+              <div className="disc__sheen" />
+              <div className="disc__hub" />
+            </div>
+          </div>
+
+          {/* The arm tracks inward across the song rather than sitting at one
+              angle, so it is telling the truth about where the playhead is -
+              the same fact the branch below is drawing, said the way a record
+              player says it. Parked off the record whenever nothing is
+              playing. */}
+          <div
+            className={`tonearm ${playing ? 'tonearm--down' : ''}`}
+            style={{ '--track': playing ? armAngle : ARM_PARKED }}
+          >
+            <span className="tonearm__pivot" />
+            <span className="tonearm__arm" />
+            <span className="tonearm__head" />
+          </div>
         </div>
 
         <div className="deck__meta">

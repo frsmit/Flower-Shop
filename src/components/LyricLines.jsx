@@ -58,6 +58,24 @@ export default function LyricLines({ lines, timed, elapsed }) {
     box.scrollTo({ top: box.scrollTop + delta, behavior: reduced ? 'auto' : 'smooth' });
   }, [active, reduced]);
 
+  /*
+   * Three states, not two: sung, being sung, and not yet.
+   *
+   * The line the song has reached is the only one marked, and everything behind
+   * it reads as ordinary text - because those are the words she is most likely
+   * to look back at, and dimming them to make the current line stand out
+   * punishes exactly that. Only the words still ahead are held back, and they
+   * arrive as the song crosses them rather than sitting greyed out waiting.
+   *
+   * They keep their space in the layout while they wait, so the sheet does not
+   * reflow underneath the scroll as each one lands.
+   */
+  const state = (i) => {
+    if (!isTimed) return '';
+    if (i === active) return 'lyrics__line--now';
+    return i < active ? 'lyrics__line--sung' : 'lyrics__line--ahead';
+  };
+
   return shown.map((line, i) =>
     line.trim() === '' ? (
       <span key={i} className="lyrics__break" aria-hidden="true" />
@@ -65,11 +83,9 @@ export default function LyricLines({ lines, timed, elapsed }) {
       <p
         key={i}
         ref={i === active ? activeRef : null}
-        className={`lyrics__line ${
-          isTimed ? (i === active ? 'lyrics__line--on' : 'lyrics__line--off') : ''
-        }`}
-        // The lit line is where the song is, which is worth saying out loud to
-        // anyone reading this with their ears rather than their eyes.
+        className={`lyrics__line ${state(i)}`}
+        // Where the song has got to, said out loud for anyone reading this with
+        // their ears rather than their eyes.
         aria-current={i === active ? 'true' : undefined}
       >
         {line}

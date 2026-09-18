@@ -11,6 +11,7 @@ import LetterOpening from './components/LetterOpening.jsx';
 import ButterflyFlight from './components/ButterflyFlight.jsx';
 import PoemSheet from './components/PoemSheet.jsx';
 import MusicRoom from './components/MusicRoom.jsx';
+import StillnessToggle from './components/StillnessToggle.jsx';
 import {
   HOUR,
   getCountdownParts,
@@ -193,6 +194,8 @@ export default function App() {
           place the petals are not the only thing moving - confetti is firing
           over the top of them - so this is where the 2D canvas should be
           asking for least, not most. */}
+      <StillnessToggle />
+
       <PetalField density={celebrating ? 0.8 : 1} />
       <Bougainvillea />
 

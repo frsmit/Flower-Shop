@@ -251,7 +251,7 @@ const HEDGE = (() => {
       p,
       depth,
       color: PALETTES[Math.floor(rng() * PALETTES.length)],
-      ...decorate(p, rng, depth, { clusters: 13 + Math.floor(rng() * 7) }),
+      ...decorate(p, rng, depth, { clusters: 9 + Math.floor(rng() * 5) }),
       ...caneStyle(rng),
     };
   }).sort((a, b) => a.depth - b.depth);
@@ -296,7 +296,7 @@ const GRASS_GREENS = ['#7e9a68', '#8fae76', '#9dbd83', '#6f8c5c', '#a8c48d'];
 
 const GRASS = (() => {
   const rng = mulberry32(5150);
-  return Array.from({ length: 170 }, () => {
+  return Array.from({ length: 96 }, () => {
     const h = 14 + rng() * 42;
     return {
       d: grassBlade(rng() * (HEDGE_W + 20) - 10, h, (rng() - 0.5) * 30, 1.5 + rng() * 1.9),
@@ -314,7 +314,7 @@ const WILDFLOWER_COLORS = ['#ffffff', '#fdfbf4', '#fff4d6', '#e8dcf5', '#ffe2ec'
 
 const WILDFLOWERS = (() => {
   const rng = mulberry32(9091);
-  return Array.from({ length: 46 }, () => {
+  return Array.from({ length: 28 }, () => {
     const stem = 12 + rng() * 30;
     return {
       x: rng() * HEDGE_W,
@@ -381,7 +381,7 @@ function buildDrape(seed, dir) {
         p,
         depth,
         color: PALETTES[Math.floor(rng() * PALETTES.length)],
-        ...decorate(p, rng, depth, { clusters: 12 + Math.floor(rng() * 6) }),
+        ...decorate(p, rng, depth, { clusters: 9 + Math.floor(rng() * 4) }),
         ...caneStyle(rng),
       };
     })
@@ -494,8 +494,8 @@ function Sprite() {
   return (
     <svg className="vines__sprite" aria-hidden="true" focusable="false">
       <defs>
-        <filter id="bx-haze" x="-25%" y="-25%" width="150%" height="150%">
-          <feGaussianBlur stdDeviation="11" />
+        <filter id="bx-haze" x="-12%" y="-12%" width="124%" height="124%" filterUnits="objectBoundingBox">
+          <feGaussianBlur stdDeviation="6" />
         </filter>
 
         {/* One bract, face-on. `currentColor` lets every copy be tinted for its
