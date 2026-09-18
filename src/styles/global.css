@@ -2257,12 +2257,32 @@ body {
 
 /* Bare wood: what the branch looks like before the song reaches it. Grey and
    a touch cool, so the warm copy over the top reads as colour arriving. */
-.scrub__wood path {
+.scrub__wood {
   fill: rgba(146, 126, 136, 0.34);
 }
 
-.scrub__wood--warm path {
+.scrub__wood--warm {
   fill: rgba(122, 82, 68, 0.72);
+}
+
+/* Each twig pushes out of the bough as the song reaches it.
+
+   Scaled from almost nothing about its own root - which is the origin of its
+   local coordinates, and why the geometry is built that way. Scaling about the
+   drawing's origin instead would have flown each twig in from the left edge.
+
+   Not from exactly 0: a zero scale collapses the transform matrix and some
+   engines stop interpolating out of it cleanly. */
+.scrub__twig {
+  transform: translate(var(--rx), var(--ry)) scale(0.04);
+  transform-origin: 0 0;
+  opacity: 0;
+  transition: transform 0.75s cubic-bezier(0.22, 1.05, 0.36, 1), opacity 0.4s ease;
+}
+
+.scrub__twig--out {
+  transform: translate(var(--rx), var(--ry)) scale(1);
+  opacity: 1;
 }
 
 .scrub__petal {
@@ -2280,8 +2300,8 @@ body {
   transform-box: fill-box;
   transform-origin: center;
   opacity: 0.32;
-  scale: 0.34;
-  transition: opacity 0.6s ease, scale 0.6s cubic-bezier(0.22, 1.2, 0.36, 1);
+  scale: 0.3;
+  transition: opacity 0.55s ease, scale 0.55s cubic-bezier(0.22, 1.2, 0.36, 1);
 }
 
 .scrub__bud--open {
@@ -2292,12 +2312,7 @@ body {
 /* The unopened tips. These never become flowers - they are what is still to
    come, and they stay on the branch once the song has passed them. */
 .scrub__budtip {
-  fill: rgba(190, 140, 158, 0.5);
-  transition: fill 0.6s ease;
-}
-
-.scrub__budtip--open {
-  fill: var(--rose);
+  fill: rgba(203, 143, 165, 0.75);
 }
 
 .scrub__head {
@@ -2434,40 +2449,77 @@ body {
 
 /* ---------- the lyric sheet ------------------------------------------- */
 
+/* The words, set like the poem on the front page rather than filed in a
+   panel.
+
+   The box had to go. A bordered, shadowed, scrolling card is how an interface
+   presents *data* - it says "here is a field containing lyrics". The front
+   page already knows better: the poem is just typography on the background,
+   and it reads as something written rather than something stored. These are
+   song lyrics on a page made of poems, so they get the same treatment and sit
+   directly above the transport, over the deck.
+
+   It still scrolls, because a long song is longer than the space - but the
+   scroller is invisible, which is the entire difference. */
 .lyrics {
-  width: min(100%, 32rem);
-  flex: 1 1 auto;
+  width: min(100%, 34rem);
+  /* Takes what it needs up to its cap and no more. It used to be flex: 1 in a
+     height-capped column; inside the deck there is no such ceiling, so a
+     percentage would resolve against an auto height and the words would push
+     the transport row off the bottom of the page. */
+  flex: 0 1 auto;
   min-height: 0;
   display: flex;
   justify-content: center;
 }
 
-/* Takes whatever the deck above it leaves, and scrolls the rest. The vh cap
-   keeps it from swallowing a tall desktop window on a short song. */
 .lyrics__sheet {
   width: 100%;
-  max-height: min(100%, 34vh);
+  max-height: 30vh;
   overflow-y: auto;
-  padding: 0.9rem 1.1rem;
-  border-radius: 1.1rem;
-  border: 1px solid var(--glass-line);
-  background: rgba(255, 255, 255, 0.52);
-  box-shadow: var(--shadow-soft);
+  padding: 0.2rem 0.6rem;
   text-align: center;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+
+/* No visible scrollbar in either engine - the words should look like they were
+   written on the page, and a gutter down the side gives away the box. */
+.lyrics__sheet::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .lyrics__sheet:focus-visible {
   outline: 2px solid var(--rose-deep);
-  outline-offset: 3px;
+  outline-offset: 6px;
+  border-radius: 0.6rem;
 }
 
+/* Same face, size and colour as the poem lines on the front page. */
 .lyrics__line {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(0.92rem, 2.4vw, 1.06rem);
-  line-height: 1.75;
+  font-style: italic;
+  font-size: clamp(1rem, 2.5vw, 1.32rem);
+  line-height: 1.85;
   color: var(--plum);
+  opacity: 0.86;
+}
+
+/* A verse break, kept as space. Collapsing the blank lines turns a song into
+   a paragraph. */
+.lyrics__break {
+  display: block;
+  height: 0.8em;
+}
+
+.lyrics__empty {
+  margin: 0;
+  align-self: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.98rem;
+  color: var(--plum-soft);
 }
 
 /* Where a song came with timings, the words arrive as it reaches them.
@@ -2491,7 +2543,7 @@ body {
 }
 
 .lyrics__line--sung {
-  opacity: 1;
+  opacity: 0.86;
 }
 
 .lyrics__line--now {
@@ -3372,5 +3424,14 @@ body {
 @media (max-width: 30rem) {
   .stillness__word {
     display: none;
+  }
+}
+
+/* Twigs and their blossom appear together with the wood; holding still stops
+   them arriving mid-grow rather than freezing a half-sprouted branch. */
+@media (prefers-reduced-motion: reduce) {
+  .scrub__twig,
+  .scrub__bud {
+    transition: none;
   }
 }

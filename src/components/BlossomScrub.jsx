@@ -87,92 +87,86 @@ const BOUGH = taper(
 );
 
 /**
- * Side twigs, alternating above and below.
+ * Side twigs, alternating above and below - and each one grows out of the
+ * bough as the song reaches it.
  *
- * Each leaves the bough along its normal and curls forward, so they read as
- * growth off a living branch rather than spokes on a wheel. `bend` is what
- * keeps the set from looking parallel.
+ * Every twig is built in its OWN coordinates, with its root at (0, 0), and
+ * placed by a translate on the group around it. That is what makes the growth
+ * possible: an SVG element scales about its local origin, so scaling the group
+ * from nothing to full size makes the twig appear to push out of the bough
+ * rather than fade in on top of it. Built in absolute coordinates it would
+ * have scaled about the far left of the drawing and flown in from off-screen.
+ *
+ * The blossom rides inside the same group, so it arrives with the wood it is
+ * attached to and opens a beat later.
  */
-const TWIGS = [0.08, 0.19, 0.28, 0.4, 0.5, 0.61, 0.71, 0.82, 0.92].map((t, i) => {
-  const [nx, ny] = normal(t);
-  const side = i % 2 ? -1 : 1;
-  const reach = 30 + ((i * 5) % 3) * 9;
-  const bend = (i % 3 === 0 ? 1 : -1) * 14;
+const TWIGS = [0.05, 0.13, 0.21, 0.29, 0.37, 0.45, 0.53, 0.61, 0.69, 0.77, 0.85, 0.93].map(
+  (t, i) => {
+    const [nx, ny] = normal(t);
+    const side = i % 2 ? -1 : 1;
+    const reach = 28 + ((i * 5) % 3) * 10;
+    const bend = (i % 3 === 0 ? 1 : -1) * 13;
 
-  const rootX = x(t);
-  const rootY = y(t);
-  const tipX = rootX + nx * side * reach + bend;
-  const tipY = rootY + ny * side * reach;
+    const rootX = x(t);
+    const rootY = y(t);
 
-  // Quadratic towards the tip, control point pushed along the bough so the
-  // twig sweeps away rather than kinking where it joins.
-  const cx = rootX + (tipX - rootX) * 0.45 + bend * 0.8;
-  const cy = rootY + (tipY - rootY) * 0.55;
+    // Local: the root is the origin, so the tip is just the offset from it.
+    const tipX = nx * side * reach + bend;
+    const tipY = ny * side * reach;
+    const cx = tipX * 0.45 + bend * 0.8;
+    const cy = tipY * 0.55;
 
-  const point = (u) => {
-    const px = (1 - u) * (1 - u) * rootX + 2 * (1 - u) * u * cx + u * u * tipX;
-    const py = (1 - u) * (1 - u) * rootY + 2 * (1 - u) * u * cy + u * u * tipY;
-    const dx = 2 * (1 - u) * (cx - rootX) + 2 * u * (tipX - cx);
-    const dy = 2 * (1 - u) * (cy - rootY) + 2 * u * (tipY - cy);
-    const len = Math.hypot(dx, dy) || 1;
-    return [px, py, -dy / len, dx / len];
-  };
+    const point = (u) => {
+      const px = 2 * (1 - u) * u * cx + u * u * tipX;
+      const py = 2 * (1 - u) * u * cy + u * u * tipY;
+      const dx = 2 * (1 - u) * cx + 2 * u * (tipX - cx);
+      const dy = 2 * (1 - u) * cy + 2 * u * (tipY - cy);
+      const len = Math.hypot(dx, dy) || 1;
+      return [px, py, -dy / len, dx / len];
+    };
 
-  const mid = point(0.62);
+    // Three flowers along each twig, gathered towards the tip where blossom
+    // actually sits, plus a bud beyond it for something still to come.
+    const flowers = [0.98, 0.72, 0.46].map((u, k) => {
+      const [px, py, pnx, pny] = point(u);
+      const off = k === 1 ? 7 : k === 2 ? -6 : 0;
+      return {
+        at: [(px + pnx * off).toFixed(1), (py + pny * off).toFixed(1)],
+        scale: (1.08 - k * 0.2 + ((i * 3) % 3) * 0.06).toFixed(2),
+        turn: (i * 47 + k * 111) % 360,
+        delay: (0.16 + k * 0.07).toFixed(2),
+      };
+    });
 
-  return {
-    t,
-    side,
-    d: taper(point, (u) => 3.2 - 2.6 * u, 12),
-    tip: [tipX.toFixed(1), tipY.toFixed(1)],
-    mid: [mid[0].toFixed(1), mid[1].toFixed(1)],
-  };
-});
+    return {
+      t,
+      root: [rootX.toFixed(1), rootY.toFixed(1)],
+      d: taper(point, (u) => 3 - 2.45 * u, 12),
+      flowers,
+      bud: {
+        cx: (tipX + side * 2).toFixed(1),
+        cy: (tipY + side * 10).toFixed(1),
+        r: (2.4 + ((i * 11) % 3) * 0.6).toFixed(1),
+      },
+    };
+  },
+);
 
 /**
- * Blossom, gathered rather than spaced.
+ * A few flowers sitting directly on the bough, in the gaps between twigs.
  *
- * Two open flowers per twig - one at the tip, one part way along - plus one
- * sitting on the bough itself in the gap before the next twig, so the flowers
- * do not march in step with the twigs. A bud just beyond each tip gives the
- * branch something still to do.
+ * Without these the blossom marches in step with the twigs, which gives the
+ * whole length a rhythm no branch has.
  */
-const FLOWERS = [];
-const BUDS = [];
-
-TWIGS.forEach((twig, i) => {
-  FLOWERS.push({
-    t: twig.t,
-    at: twig.tip,
-    scale: (1.05 + ((i * 7) % 4) * 0.1).toFixed(2),
-    turn: (i * 47) % 360,
-  });
-
-  FLOWERS.push({
-    t: twig.t,
-    at: twig.mid,
-    scale: (0.78 + ((i * 3) % 3) * 0.09).toFixed(2),
-    turn: (i * 83 + 40) % 360,
-  });
-
-  BUDS.push({
-    t: twig.t,
-    cx: (Number(twig.tip[0]) + twig.side * 2).toFixed(1),
-    cy: (Number(twig.tip[1]) + twig.side * 11).toFixed(1),
-    r: (2.6 + ((i * 11) % 3) * 0.7).toFixed(1),
-  });
-
-  const between = Math.min(0.99, twig.t + 0.055);
-  const [nx, ny] = normal(between);
-  FLOWERS.push({
-    t: between,
-    at: [
-      (x(between) + nx * -twig.side * 9).toFixed(1),
-      (y(between) + ny * -twig.side * 9).toFixed(1),
-    ],
-    scale: (0.62 + ((i * 5) % 3) * 0.08).toFixed(2),
+const BOUGH_FLOWERS = [0.09, 0.25, 0.41, 0.57, 0.73, 0.89].map((t, i) => {
+  const [nx, ny] = normal(t);
+  const side = i % 2 ? 1 : -1;
+  return {
+    t,
+    at: [(x(t) + nx * side * 10).toFixed(1), (y(t) + ny * side * 10).toFixed(1)],
+    scale: (0.6 + ((i * 5) % 3) * 0.08).toFixed(2),
     turn: (i * 113 + 90) % 360,
-  });
+  };
 });
 
 /** Five petals round a centre - teardrops, not discs. */
@@ -228,31 +222,47 @@ export default function BlossomScrub({
           </clipPath>
         </defs>
 
-        <g className="scrub__wood">
-          <path d={BOUGH} />
-          {TWIGS.map((twig, i) => (
-            <path key={i} d={twig.d} />
-          ))}
-        </g>
+        {/* The bough is there from the first frame - it is the timeline, and a
+            timeline that grew as it went would have nothing to seek along. Only
+            its colour arrives with the song. */}
+        <path className="scrub__wood" d={BOUGH} />
+        <path
+          className="scrub__wood scrub__wood--warm"
+          d={BOUGH}
+          clipPath={`url(#bloomed-${uid})`}
+        />
 
-        <g className="scrub__wood scrub__wood--warm" clipPath={`url(#bloomed-${uid})`}>
-          <path d={BOUGH} />
-          {TWIGS.map((twig, i) => (
-            <path key={i} d={twig.d} />
-          ))}
-        </g>
+        {TWIGS.map((twig, i) => {
+          const out = twig.t <= through;
+          return (
+            <g
+              key={i}
+              className={`scrub__twig ${out ? 'scrub__twig--out' : ''}`}
+              style={{ '--rx': `${twig.root[0]}px`, '--ry': `${twig.root[1]}px` }}
+            >
+              <path className="scrub__wood scrub__wood--warm" d={twig.d} />
 
-        {BUDS.map((bud, i) => (
-          <circle
-            key={i}
-            className={`scrub__budtip ${bud.t <= through ? 'scrub__budtip--open' : ''}`}
-            cx={bud.cx}
-            cy={bud.cy}
-            r={bud.r}
-          />
-        ))}
+              <circle
+                className="scrub__budtip"
+                cx={twig.bud.cx}
+                cy={twig.bud.cy}
+                r={twig.bud.r}
+              />
 
-        {FLOWERS.map((bloom, i) => (
+              {twig.flowers.map((bloom, k) => (
+                <use
+                  key={k}
+                  className={`scrub__bud ${out ? 'scrub__bud--open' : ''}`}
+                  href={`#${flower}`}
+                  style={{ transitionDelay: out ? `${bloom.delay}s` : '0s' }}
+                  transform={`translate(${bloom.at[0]} ${bloom.at[1]}) rotate(${bloom.turn}) scale(${bloom.scale})`}
+                />
+              ))}
+            </g>
+          );
+        })}
+
+        {BOUGH_FLOWERS.map((bloom, i) => (
           <use
             key={i}
             className={`scrub__bud ${bloom.t <= through ? 'scrub__bud--open' : ''}`}
