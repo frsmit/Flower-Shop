@@ -32,8 +32,30 @@ export default memo(function WishLetter({ wish }) {
   const reduced = useReducedMotion();
   const [open, setOpen] = useState(() => typeof IntersectionObserver === 'undefined');
 
-  const words = useMemo(() => String(wish ?? '').split(/\s+/).filter(Boolean), [wish]);
-  const step = words.length ? Math.min(STEP, LONGEST / words.length) : STEP;
+  // Paragraphs on blank lines, lines within them on single newlines, words
+  // within those. Splitting on all whitespace at once ran a whole letter
+  // together into one block. `index` keeps counting across the breaks so the
+  // words still arrive as one sentence-paced run.
+  const paragraphs = useMemo(() => {
+    let index = 0;
+    return String(wish ?? '')
+      .trim()
+      .split(/\n\s*\n/)
+      .map((para) =>
+        para
+          .split('\n')
+          .map((line) =>
+            line
+              .split(/\s+/)
+              .filter(Boolean)
+              .map((word) => ({ word, index: index++ })),
+          )
+          .filter((line) => line.length),
+      )
+      .filter((para) => para.length);
+  }, [wish]);
+  const count = paragraphs.flat(2).length;
+  const step = count ? Math.min(STEP, LONGEST / count) : STEP;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -50,21 +72,34 @@ export default memo(function WishLetter({ wish }) {
     return () => observer.disconnect();
   }, [open]);
 
-  if (!words.length) return null;
+  if (!count) return null;
 
   return (
     <article
       ref={hostRef}
-      className={['wish', open ? 'is-open' : '', reduced ? 'is-instant' : '']
+      className={[
+        'wish',
+        // More than one line is a letter, not a wish: set left, like one.
+        paragraphs.length > 1 || paragraphs[0].length > 1 ? 'is-letter' : '',
+        open ? 'is-open' : '',
+        reduced ? 'is-instant' : '',
+      ]
         .filter(Boolean)
         .join(' ')}
     >
-      <p className="wish__text">
-        {words.map((word, i) => (
-          <Fragment key={i}>
-            <span className="wish__word" style={{ '--word-delay': `${(i * step).toFixed(2)}s` }}>
-              {word}
-            </span>
+      {paragraphs.map((lines, p) => (
+        <p className="wish__text" key={p}>
+          {lines.map((words, l) => (
+            <Fragment key={l}>
+              {l > 0 ? <br /> : null}
+              {words.map(({ word, index }, i) => (
+                <Fragment key={index}>
+                  <span
+                    className="wish__word"
+                    style={{ '--word-delay': `${(index * step).toFixed(2)}s` }}
+                  >
+                    {word}
+                  </span>
             {/* Outside the span, deliberately. Each word is an inline-block so
                 it can be moved on its own, and an inline-block trims the
                 whitespace inside its own box - with the space in there the
@@ -72,10 +107,13 @@ export default memo(function WishLetter({ wish }) {
                 is a text node in the paragraph's own inline formatting
                 context, so it survives, and the sentence still copies and
                 pastes with its spaces intact. */}
-            {i < words.length - 1 ? ' ' : null}
-          </Fragment>
-        ))}
-      </p>
+                  {i < words.length - 1 ? ' ' : null}
+                </Fragment>
+              ))}
+            </Fragment>
+          ))}
+        </p>
+      ))}
     </article>
   );
 });

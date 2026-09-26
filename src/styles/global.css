@@ -3057,6 +3057,35 @@ body {
     0 18px 36px -18px rgba(90, 50, 70, 0.42);
 }
 
+/* A letter rather than a wish. A4 holds a line or two at this size; a real
+   letter overran the sheet threefold. So the sheet keeps its A4 width and
+   minimum height and grows downward, like a longer page, and the type steps
+   down and sets left, the way a letter is written. */
+.wish.is-letter {
+  height: auto;
+  min-height: var(--sheet-h);
+  /* Three quarters of the screen, capped so a line stays readable on a very
+     wide monitor; on a phone, the full width less the page gutter. */
+  width: min(75vw, 76rem);
+  padding: clamp(2rem, 5vh, 3.5rem) clamp(1.5rem, 5vw, 4.5rem);
+  place-items: initial;
+  align-content: center;
+  gap: 1em;
+}
+
+@media (max-width: 640px) {
+  .wish.is-letter {
+    width: calc(100vw - 2rem);
+  }
+}
+
+.wish.is-letter .wish__text {
+  font-size: clamp(15px, 1.3vw, 21px);
+  line-height: 1.7;
+  text-align: left;
+  text-wrap: pretty;
+}
+
 .wish__text {
   margin: 0;
   /* The sheet centres its one child, and a centred grid item is sized to fit
