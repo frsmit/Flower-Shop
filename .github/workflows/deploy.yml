@@ -38,6 +38,15 @@ jobs:
       # music tab silently never appears. This turns that into a red build.
       - run: npm run songs:check
 
+      # The photographs live in Google Drive; only their links travel, one per
+      # line in this secret (see scripts/write-photos.mjs). It writes
+      # public/photos/photos.json for the build and fails the run if any link
+      # doesn't load as an image - an unshared photo would otherwise deploy
+      # green and simply be missing. Unset builds without photographs.
+      - run: npm run photos:write
+        env:
+          BIRTHDAY_PHOTOS: ${{ secrets.BIRTHDAY_PHOTOS }}
+
       # Set these under Settings -> Secrets and variables -> Actions.
       # Anything missing falls back to the neutral defaults in src/config.js.
       #

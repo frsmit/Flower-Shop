@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "key": "node scripts/make-key.mjs",
     "songs:check": "node scripts/check-songs.mjs",
-    "songs:enrich": "node scripts/enrich-songs.mjs"
+    "songs:enrich": "node scripts/enrich-songs.mjs",
+    "photos:write": "node --env-file-if-exists=.env scripts/write-photos.mjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

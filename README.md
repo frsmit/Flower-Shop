@@ -431,10 +431,28 @@ and the songs. Those drip through the wait and so both count against the clock;
 these live on a page that only exists on the day, so every one of them is hers
 the moment she reaches it. The order is the order she sees them in.
 
-Same deployment consequence as the music, for the same reason: the images
-aren't in the repo, so a CI build has no photographs and the section simply
-isn't there. Ship them the same way — build locally, upload `dist/` yourself.
-And the same warning applies twice over: **gitignoring keeps them out of your
+**For the deploy, they come from Google Drive.** The images aren't in the repo,
+so CI writes `photos.json` itself from an Actions secret, `BIRTHDAY_PHOTOS`: one
+Drive share link per line, in order, with an optional caption after a `|`.
+
+```
+https://drive.google.com/file/d/1AbC.../view?usp=sharing | the chai place
+https://drive.google.com/file/d/1XyZ.../view
+```
+
+Set each photo to **Share → General access → Anyone with the link**.
+[`scripts/write-photos.mjs`](scripts/write-photos.mjs) turns each share link
+into a direct, 1600px image address, fetches every one, and **fails the build**
+if any doesn't come back as an image — an unshared photo would otherwise deploy
+green and just be missing. Unset builds without photographs. Run it locally
+with `npm run photos:write` (it reads `.env`, and overwrites your local
+`photos.json`).
+
+The direct address, `lh3.googleusercontent.com/d/<id>`, is not an API Google
+documents. It works, but if Google changes it the section disappears, so check
+the live page after any redeploy.
+
+And the same warning applies twice over: **the secret keeps them out of your
 repo, not out of your deployment.** Anyone with the link can fetch them, and
 the whole manifest is read up front, so every caption is in devtools. Don't put
 a picture there you'd mind a stranger seeing.
