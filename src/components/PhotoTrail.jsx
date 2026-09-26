@@ -33,7 +33,7 @@ const MIN_TRAVEL = 18;
 const MAX_TRAVEL = 52;
 
 // One photograph, in path-space units. Scaled with everything else.
-const PHOTO = 110;
+const PHOTO = 88;
 
 // The slice of the curve that is actually on screen, used only when motion is
 // off and they have to be placed rather than travel.
