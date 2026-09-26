@@ -583,7 +583,7 @@ body {
 }
 
 /* In flow, not absolutely positioned. Pinned to the bottom it had no idea how
-   tall the greeting above it was, and the third button - "all ten songs",
+   tall the greeting above it was, and the third button - "all twelve songs",
    which only exists once the songs have all unlocked, i.e. on the day itself -
    ran 23px into it. A second grid row cannot overlap the first whatever the
    greeting does. The row collapses to nothing while the age is still burning,
@@ -2870,12 +2870,9 @@ body {
   animation-play-state: paused;
 }
 
-/* So a moving target can actually be caught. The stream holds still while she
-   is reaching for one, and picks up again when she is not. */
-.trail:hover .trail__photo,
-.trail:focus-within .trail__photo {
-  animation-play-state: paused;
-}
+/* No pause on hover or focus: the stream never stops while it is on screen.
+   A photograph still lifts above its neighbours under the pointer, and still
+   opens on a tap. */
 
 .trail__photo:hover,
 .trail__photo:focus-visible {

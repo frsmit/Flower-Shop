@@ -121,7 +121,7 @@ export default function Celebration({ name, title, message, onReadPoem, onOpenMu
 
         {onOpenMusic ? (
           <button type="button" className="celebration__link" onClick={onOpenMusic}>
-            <span aria-hidden="true">💿</span> all ten songs
+            <span aria-hidden="true">💿</span> all twelve songs
           </button>
         ) : null}
 
